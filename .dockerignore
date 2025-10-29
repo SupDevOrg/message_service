@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Binaries
+*.exe
+message-service
+message_service
+
+# Documentation
+README.md
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
