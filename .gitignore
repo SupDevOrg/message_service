@@ -5,27 +5,20 @@
 *.so
 *.dylib
 message_service
-message-service
 
-# Test binary
 *.test
 
-# Output
 *.out
 
-# Go workspace file
 go.work
 
-# Environment
 .env
 
-# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS
 .DS_Store
 Thumbs.db
 
