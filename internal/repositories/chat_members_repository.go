@@ -1,4 +1,4 @@
-package repository
+package repositories
 
 import (
 	"message_service/internal/models"
