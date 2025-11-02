@@ -33,8 +33,8 @@ func (r *ChatMemberRepository) RemoveMember(chat, user uint) error {
 		Delete(&models.ChatMember{}).Error
 }
 
-func (r *ChatMemberRepository) GetUserChats(user uint) ([]models.ChatMember, error) {
-	var chatMembers []models.ChatMember
+func (r *ChatMemberRepository) GetUserChats(user uint) ([]uint, error) {
+	var chatMembers []uint
 
 	err := r.db.Where("user_id = ?", user).Find(&chatMembers).Error
 
