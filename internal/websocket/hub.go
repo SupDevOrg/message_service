@@ -1,6 +1,9 @@
 package websocket
 
 import (
+	"encoding/json"
+	"log"
+
 	"message_service/internal/services"
 )
 
@@ -44,17 +47,38 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
-
-			if h.MessageService != nil {
-				_, err := h.MessageService.CreateMessage(message.ChatID, message.SenderID, string(message.Content))
-				if err != nil {
-					// Логируем ошибку, но продолжаем отправку
-					continue
-				}
+			// Сохраняем сообщение в БД
+			if h.MessageService == nil {
+				log.Println("MessageService is nil, skipping message save")
+				continue
 			}
 
+			savedMsg, err := h.MessageService.CreateMessage(message.ChatID, message.SenderID, string(message.Content))
+			if err != nil {
+				log.Printf("Failed to save message: %v", err)
+				continue
+			}
+
+			// Формируем JSON
+			msgJSON, err := json.Marshal(map[string]interface{}{
+				"id":         savedMsg.ID,
+				"chat_id":    savedMsg.ChatID,
+				"sender_id":  savedMsg.SenderID,
+				"content":    savedMsg.Content,
+				"created_at": savedMsg.CreatedAt,
+			})
+			if err != nil {
+				log.Printf("Failed to marshal message to JSON: %v", err)
+				continue
+			}
+
+			// Отправляем всем участникам чата
 			for client := range h.Clients[message.ChatID] {
-				client.Recive <- message.Content
+				select {
+				case client.Recive <- msgJSON:
+				default:
+					log.Printf("Failed to send message to client %d", client.UserID)
+				}
 			}
 		}
 	}
