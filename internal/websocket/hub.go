@@ -47,7 +47,6 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
-			// Сохраняем сообщение в БД
 			if h.MessageService == nil {
 				log.Println("MessageService is nil, skipping message save")
 				continue
@@ -59,7 +58,6 @@ func (h *Hub) Run() {
 				continue
 			}
 
-			// Формируем JSON
 			msgJSON, err := json.Marshal(map[string]interface{}{
 				"id":         savedMsg.ID,
 				"chat_id":    savedMsg.ChatID,
@@ -71,8 +69,6 @@ func (h *Hub) Run() {
 				log.Printf("Failed to marshal message to JSON: %v", err)
 				continue
 			}
-
-			// Отправляем всем участникам чата
 			for client := range h.Clients[message.ChatID] {
 				select {
 				case client.Recive <- msgJSON:
