@@ -47,24 +47,13 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
-			if h.MessageService == nil {
-				log.Println("MessageService is nil, skipping message save")
-				continue
-			}
-
 			savedMsg, err := h.MessageService.CreateMessage(message.ChatID, message.SenderID, string(message.Content))
 			if err != nil {
 				log.Printf("Failed to save message: %v", err)
 				continue
 			}
 
-			msgJSON, err := json.Marshal(map[string]interface{}{
-				"id":         savedMsg.ID,
-				"chat_id":    savedMsg.ChatID,
-				"sender_id":  savedMsg.SenderID,
-				"content":    savedMsg.Content,
-				"created_at": savedMsg.CreatedAt,
-			})
+			msgJSON, err := json.Marshal(savedMsg)
 			if err != nil {
 				log.Printf("Failed to marshal message to JSON: %v", err)
 				continue
