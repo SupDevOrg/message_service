@@ -16,12 +16,12 @@ func NewUserService(userRepo *repositories.UserRepo) *UserService {
 	}
 }
 
-func (s *UserService) Create(username string) (*models.User, error) {
+func (s *UserService) Create(id uint, username string) (*models.User, error) {
 	if username == "" {
 		return nil, errors.New("username cannot be empty")
 	}
 
-	return s.userRepo.Create(username)
+	return s.userRepo.Create(id, username)
 }
 
 func (s *UserService) Delete(user uint) error {

@@ -45,11 +45,15 @@ func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 		return
 	}
 
-	chat, _, err := h.chatService.CreateChat(uint(userID1), uint(userID2))
+	chat, created, err := h.chatService.CreateChat(uint(userID1), uint(userID2))
 	if err != nil {
 		log.Printf("Failed to create/find chat: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create/find chat"})
 		return
+	}
+
+	if created {
+		log.Printf("Created new chat: %d between users %d and %d", chat.ID, userID1, userID2)
 	}
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)

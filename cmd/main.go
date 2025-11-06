@@ -37,13 +37,12 @@ func main() {
 		c.JSON(200, gin.H{"status": "OK"})
 	})
 
-	api := router.Group("/api")
+	api := router.Group("/api/v1/message")
 	{
 		api.GET("/messages/:chat_id", messageHandler.GetMessages)
 		api.POST("/members", chatHandler.AddUserToChat)
+		api.GET("/ws", wsHandler.HandleWebSocket)
 	}
-
-	router.GET("/ws", wsHandler.HandleWebSocket)
 
 	port := ":8080"
 	log.Printf("Server started on %s", port)
