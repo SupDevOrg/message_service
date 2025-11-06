@@ -1,13 +1,13 @@
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 WORKDIR /app
 
 # Кешируем зависимости
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Копируем исходники и собираем
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o message-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o message-service ./cmd
 
 FROM alpine:latest
 WORKDIR /app
