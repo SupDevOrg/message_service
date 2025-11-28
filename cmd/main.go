@@ -1,14 +1,20 @@
 package main
 
 import (
+	"context"
+	"github.com/gin-gonic/gin"
 	"log"
 	database "message_service/internal/data_base"
 	"message_service/internal/handlers"
+	"message_service/internal/kafka"
 	"message_service/internal/repositories"
 	"message_service/internal/services"
 	"message_service/internal/websocket"
-
-	"github.com/gin-gonic/gin"
+	"message_service/pkg/config"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
 )
 
 func main() {
@@ -26,6 +32,22 @@ func main() {
 
 	hub := websocket.NewHub(messageService)
 	go hub.Run()
+
+	config.LoadKafkaConfig()
+	log.Printf("kafka config loaded: Brokers=%s, Topic=%s, GroupID=%s",
+		config.Cnfg.KafkaBrokers, config.Cnfg.KafkaTopic, config.Cnfg.KafkaGroupID)
+
+	brokers := strings.Split(config.Cnfg.KafkaBrokers, ",")
+	kafkaConsumer := kafka.NewConsumer(
+		brokers,
+		config.Cnfg.KafkaTopic,
+		config.Cnfg.KafkaGroupID,
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go kafkaConsumer.Start(ctx)
 
 	messageHandler := handlers.NewMessageHandler(messageService)
 	chatHandler := handlers.NewChatHandler(chatMemberService, chatService)
@@ -45,6 +67,20 @@ func main() {
 		api.POST("/chat/bytwouser", chatHandler.GetChatByTwoUsers)
 		api.GET("/ws", wsHandler.HandleWebSocket)
 	}
+
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		log.Println("shutting down message service...")
+		cancel()
+		if err := kafkaConsumer.Close(); err != nil {
+			log.Printf("error closing Kafka consumer: %v", err)
+		}
+		log.Println("message service stopped")
+		os.Exit(0)
+	}()
 
 	port := ":8080"
 	log.Printf("Server started on %s", port)
