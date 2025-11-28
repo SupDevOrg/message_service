@@ -16,10 +16,15 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 
 func (r *UserRepo) Create(id uint, username string) (*models.User, error) {
 	user := &models.User{
-		Id:       id,
+		ID:       id,
 		Username: username,
 	}
-	err := r.db.Create(user).Error
+
+	// Используем Clauses для upsert: если пользователь существует, обновляем username
+	err := r.db.Where("id = ?", id).FirstOrCreate(user, &models.User{
+		ID:       id,
+		Username: username,
+	}).Error
 
 	if err != nil {
 		return nil, err

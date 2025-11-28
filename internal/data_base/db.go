@@ -36,8 +36,8 @@ func InitDB() error {
 
 	log.Println("Successfully connected to the database")
 
-	// Миграции для message_service
 	err = GormDB.AutoMigrate(
+		&models.User{},
 		&models.Chat{},
 		&models.ChatMember{},
 		&models.Message{},
