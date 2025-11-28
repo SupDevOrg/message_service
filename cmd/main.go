@@ -28,7 +28,7 @@ func main() {
 	go hub.Run()
 
 	messageHandler := handlers.NewMessageHandler(messageService)
-	chatHandler := handlers.NewChatHandler(chatMemberService)
+	chatHandler := handlers.NewChatHandler(chatMemberService, chatService)
 	wsHandler := handlers.NewWebSocketHandler(hub, chatService)
 
 	router := gin.Default()
@@ -40,7 +40,9 @@ func main() {
 	api := router.Group("/api/v1/message")
 	{
 		api.GET("/messages/:chat_id", messageHandler.GetMessages)
-		api.POST("/members", chatHandler.AddUserToChat)
+		api.POST("/chat/adduser", chatHandler.AddUserToChat)
+		api.POST("/chat/user", chatHandler.GetUserChats)
+		api.POST("/chat/bytwouser", chatHandler.GetChatByTwoUsers)
 		api.GET("/ws", wsHandler.HandleWebSocket)
 	}
 
