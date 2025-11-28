@@ -11,11 +11,13 @@ import (
 
 type ChatHandler struct {
 	chatMemberService *services.ChatMemberService
+	chatService       *services.ChatService
 }
 
-func NewChatHandler(chatMemberService *services.ChatMemberService) *ChatHandler {
+func NewChatHandler(chatMemberService *services.ChatMemberService, chatService *services.ChatService) *ChatHandler {
 	return &ChatHandler{
 		chatMemberService: chatMemberService,
+		chatService:       chatService,
 	}
 }
 
@@ -49,4 +51,51 @@ func (h *ChatHandler) AddUserToChat(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, member)
+}
+
+func (h *ChatHandler) GetUserChats(c *gin.Context) {
+	var req struct {
+		UserID uint `json:"user_id" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	chatIDs, err := h.chatMemberService.GetUserChats(req.UserID)
+	if err != nil {
+		log.Printf("Error getting user chats: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"user_id": req.UserID,
+		"chats":   chatIDs,
+	})
+}
+
+func (h *ChatHandler) GetChatByTwoUsers(c *gin.Context) {
+	var req struct {
+		UserID1 uint `json:"user_id_1" binding:"required"`
+		UserID2 uint `json:"user_id_2" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	chat, created, err := h.chatService.CreateChat(req.UserID1, req.UserID2)
+	if err != nil {
+		log.Printf("Error getting/creating chat: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"chat_id": chat.ID,
+		"created": created,
+	})
 }

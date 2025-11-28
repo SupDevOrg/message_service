@@ -1,0 +1,49 @@
+### Health Check
+GET http://localhost:8080/health
+
+### Get Messages from Chat
+GET http://localhost:8080/api/v1/message/messages/1?page=1&page_size=10&user_id=1
+
+### Add User to Chat
+POST http://localhost:8080/api/v1/message/chat/adduser
+Content-Type: application/json
+
+{
+  "chat_id": 1,
+  "user_id": 3,
+  "current_user_id": 1
+}
+
+### Get User Chats by User ID (with details)
+POST http://localhost:8080/api/v1/message/chats/user
+Content-Type: application/json
+
+{
+  "user_id": 1
+}
+
+# Response format:
+# {
+#   "chats": [
+#     {
+#       "id": 1,
+#       "name": "Иван Петров",
+#       "last_message": "Привет! Как дела?",
+#       "last_message_time": "2024-01-15T14:30:00Z"
+#     }
+#   ]
+# }
+
+### Get Chat ID by Two User IDs
+POST http://localhost:8080/api/v1/message/chat/bytwouser
+Content-Type: application/json
+
+{
+  "user_id_1": 1,
+  "user_id_2": 2
+}
+
+### WebSocket Connection
+# Use a WebSocket client to connect to:
+# ws://localhost:8080/api/v1/message/ws?user_id_1=1&user_id_2=2
+
