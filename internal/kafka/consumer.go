@@ -3,16 +3,17 @@ package kafka
 import (
 	"context"
 	"encoding/json"
-	"log"
-
 	"github.com/segmentio/kafka-go"
+	"log"
+	"message_service/internal/services"
 )
 
 type Consumer struct {
-	reader *kafka.Reader
+	reader      *kafka.Reader
+	userService *services.UserService
 }
 
-func NewConsumer(brokers []string, topic string, groupID string) *Consumer {
+func NewConsumer(brokers []string, topic string, groupID string, userService *services.UserService) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: brokers,
 		Topic:   topic,
@@ -20,7 +21,8 @@ func NewConsumer(brokers []string, topic string, groupID string) *Consumer {
 	})
 
 	return &Consumer{
-		reader: reader,
+		reader:      reader,
+		userService: userService,
 	}
 }
 
@@ -65,10 +67,12 @@ func (c *Consumer) handleUserCreated(payload []byte) {
 		return
 	}
 
-	log.Printf("USER CREATED: ID=%d, Username=%s, Timestamp=%d",
-		event.UserID, event.Username, event.Timestamp)
+	if _, err := c.userService.Create(uint(event.UserID), event.Username); err != nil {
+		log.Printf("error creating user: %v", err)
+		return
+	}
 
-	//userService.Create(event.UserID, event.Username)
+	log.Printf("user created: ID=%d, Username=%s", event.UserID, event.Username)
 }
 
 func (c *Consumer) handleUserUpdated(payload []byte) {
@@ -78,10 +82,13 @@ func (c *Consumer) handleUserUpdated(payload []byte) {
 		return
 	}
 
-	log.Printf("USER UPDATED: ID=%d, Field=%s, OldValue=%s, NewValue=%s, Timestamp=%d",
-		event.UserID, event.Field, event.OldValue, event.NewValue, event.Timestamp)
-
-	//userService.UpdateUsername(event.UserID, event.NewValue)
+	if event.Field == "username" {
+		if err := c.userService.UpdateUsername(uint(event.UserID), event.NewValue); err != nil {
+			log.Printf("error updating username: %v", err)
+			return
+		}
+		log.Printf("user updated: ID=%d, from %s to %s", event.UserID, event.OldValue, event.NewValue)
+	}
 }
 
 func (c *Consumer) Close() error {

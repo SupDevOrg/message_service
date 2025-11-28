@@ -27,6 +27,10 @@ func (r *UserRepo) Create(id uint, username string) (*models.User, error) {
 	return user, nil
 }
 
+func (r *UserRepo) UpdateUsername(id uint, username string) error {
+	return r.db.Model(&models.User{}).Where("id = ?", id).Update("username", username).Error
+}
+
 func (r *UserRepo) FindByID(id uint) (*models.User, error) {
 	var user models.User
 

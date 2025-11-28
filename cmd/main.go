@@ -25,10 +25,12 @@ func main() {
 	messageRepo := repositories.NewMessageRepository(database.GormDB)
 	chatRepo := repositories.NewChatRepository(database.GormDB)
 	chatMemberRepo := repositories.NewChatMemberRepository(database.GormDB)
+	userRepo := repositories.NewUserRepo(database.GormDB)
 
 	messageService := services.NewMessageService(messageRepo, chatRepo, chatMemberRepo)
 	chatService := services.NewChatService(chatRepo, chatMemberRepo)
 	chatMemberService := services.NewChatMemberService(chatRepo, chatMemberRepo)
+	userService := services.NewUserService(userRepo)
 
 	hub := websocket.NewHub(messageService)
 	go hub.Run()
@@ -42,6 +44,7 @@ func main() {
 		brokers,
 		config.Cnfg.KafkaTopic,
 		config.Cnfg.KafkaGroupID,
+		userService,
 	)
 
 	ctx, cancel := context.WithCancel(context.Background())

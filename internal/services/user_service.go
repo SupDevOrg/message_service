@@ -71,3 +71,22 @@ func (s *UserService) GetByID(id uint) (*models.User, error) {
 
 	return user, nil
 }
+
+func (s *UserService) UpdateUsername(id uint, username string) error {
+	if id == 0 {
+		return errors.New("invalid user ID")
+	}
+	if username == "" {
+		return errors.New("username cannot be empty")
+	}
+
+	user, err := s.userRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("user not found")
+	}
+
+	return s.userRepo.UpdateUsername(id, username)
+}
