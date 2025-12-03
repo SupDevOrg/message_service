@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"message_service/internal/models"
-
 	"gorm.io/gorm"
 )
 
@@ -34,14 +33,15 @@ func (r *ChatMemberRepository) RemoveMember(chat, user uint) error {
 }
 
 func (r *ChatMemberRepository) GetUserChats(user uint) ([]uint, error) {
-	var chatMembers []uint
-
-	err := r.db.Where("user_id = ?", user).Find(&chatMembers).Error
+	var chatIds []uint
+	err := r.db.Model(&models.ChatMember{}).
+		Where("user_id = ?", user).
+		Pluck("chat_id", &chatIds).Error
 
 	if err != nil {
 		return nil, err
 	}
-	return chatMembers, nil
+	return chatIds, nil
 }
 
 func (r *ChatMemberRepository) GetChatMembers(chat uint) ([]uint, error) {
