@@ -35,8 +35,8 @@ func (r *ChatMemberRepository) RemoveMember(chat, user uint) error {
 func (r *ChatMemberRepository) GetUserChats(user uint) ([]uint, error) {
 	var chatIds []uint
 	err := r.db.Model(&models.ChatMember{}).
-		Where("chat_id = ?", chat).
-		Pluck("user_id", &chatIds).Error
+		Where("user_id = ?", user).
+		Pluck("chat_id", &chatIds).Error
 
 	if err != nil {
 		return nil, err
