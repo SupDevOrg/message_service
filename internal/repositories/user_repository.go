@@ -20,7 +20,6 @@ func (r *UserRepo) Create(id uint, username string) (*models.User, error) {
 		Username: username,
 	}
 
-	// Используем Clauses для upsert: если пользователь существует, обновляем username
 	err := r.db.Where("id = ?", id).FirstOrCreate(user, &models.User{
 		ID:       id,
 		Username: username,

@@ -32,6 +32,18 @@ func (r *ChatRepository) FindByID(chatID uint) (*models.Chat, error) {
 	return &chat, nil
 }
 
+func (r *ChatRepository) FindByChatName(ChatName string) (*models.Chat, error) {
+	var chat models.Chat
+	err := r.db.Where("ChatName = ?", ChatName).First(&chat).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &chat, nil
+}
+
 func (r *ChatRepository) Delete(chat uint) error {
 	return r.db.Delete(&models.Chat{}, chat).Error
 }

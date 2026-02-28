@@ -62,3 +62,7 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 
 	c.JSON(http.StatusOK, MessagesResponse{Messages: *messages})
 }
+
+func (h *MessageHandler) ChangeMessage(c *gin.Context) {
+
+}

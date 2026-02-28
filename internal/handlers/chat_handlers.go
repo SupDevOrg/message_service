@@ -89,7 +89,7 @@ func (h *ChatHandler) GetChatByTwoUsers(c *gin.Context) {
 
 	chat, created, err := h.chatService.CreateChat(req.UserID1, req.UserID2)
 	if err != nil {
-		log.Printf("Error getting/creating chat: %v", err)
+		log.Printf("Chat creation error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
