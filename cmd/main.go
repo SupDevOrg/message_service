@@ -67,15 +67,14 @@ func main() {
 	{
 		// messages
 		api.GET("/messages/:chat_id", messageHandler.GetMessages)
-		api.PUT("/messages/change", messageHandler.ChangeMessage)
-
+		api.PUT("/messages/:message_id", messageHandler.ChangeMessage)
+		// api.DELETE("/messages/:message_id", messageHandler.DeleteMessage)
 		// chat
-		api.POST("/chat/adduser", chatHandler.AddUserToChat)
-		api.POST("/chat/userschat", chatHandler.GetUserChats)
-		api.POST("/chat/chatbtwntwouser", chatHandler.GetChatByTwoUsers)
-		api.GET("/chat/:chat_id/chatmembers", chatHandler.GetChatMembers)
-		api.POST("/chat/creategroup", chatHandler.CreateGroupChat)
-
+		api.GET("/chats", chatHandler.GetUserChats)
+		api.POST("/chats", chatHandler.CreateChat)
+		api.POST("/chats/group", chatHandler.CreateGroupChat)
+		api.GET("/chats/:chat_id/members", chatHandler.GetChatMembers)
+		api.POST("/chats/:chat_id/members", chatHandler.AddUserToChat)
 		// websocket
 		api.GET("/ws", wsHandler.HandleWebSocket)
 	}
