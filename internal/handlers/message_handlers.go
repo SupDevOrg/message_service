@@ -41,7 +41,8 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 		return
 	}
 
-	userID, err := strconv.ParseUint(c.Query("user_id"), 10, 64)
+	userIDStr := c.GetHeader("X-Auth-User-Id")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
 		return
