@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"log"
 	database "message_service/internal/data_base"
 	"message_service/internal/handlers"
@@ -15,6 +14,8 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -64,10 +65,18 @@ func main() {
 
 	api := router.Group("/api/v1/message")
 	{
+		// messages
 		api.GET("/messages/:chat_id", messageHandler.GetMessages)
+		api.PUT("/messages/change", messageHandler.ChangeMessage)
+
+		// chat
 		api.POST("/chat/adduser", chatHandler.AddUserToChat)
 		api.POST("/chat/user", chatHandler.GetUserChats)
 		api.POST("/chat/bytwouser", chatHandler.GetChatByTwoUsers)
+		api.GET("/chat/:chat_id/members", chatHandler.GetChatMembers)
+		api.POST("/chat/group", chatHandler.CreateGroupChat)
+
+		// websocket
 		api.GET("/ws", wsHandler.HandleWebSocket)
 	}
 
