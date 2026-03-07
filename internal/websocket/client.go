@@ -1,6 +1,8 @@
 package websocket
 
 import (
+	"encoding/json"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -9,7 +11,11 @@ type Client struct {
 	Socket *websocket.Conn
 	Recive chan []byte
 	UserID uint
-	ChatID uint
+}
+
+type IncomingMessage struct {
+	ChatID  uint   `json:"chat_id"`
+	Content string `json:"content"`
 }
 
 func (c *Client) Read() {
@@ -24,10 +30,15 @@ func (c *Client) Read() {
 			break
 		}
 
+		var incoming IncomingMessage
+		if err := json.Unmarshal(msg, &incoming); err != nil {
+			continue
+		}
+
 		c.Hub.Broadcast <- &Message{
-			ChatID:   c.ChatID,
+			ChatID:   incoming.ChatID,
 			SenderID: c.UserID,
-			Content:  msg,
+			Content:  []byte(incoming.Content),
 		}
 	}
 }
