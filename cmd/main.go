@@ -71,10 +71,10 @@ func main() {
 
 		// chat
 		api.POST("/chat/adduser", chatHandler.AddUserToChat)
-		api.POST("/chat/user", chatHandler.GetUserChats)
-		api.POST("/chat/bytwouser", chatHandler.GetChatByTwoUsers)
-		api.GET("/chat/:chat_id/members", chatHandler.GetChatMembers)
-		api.POST("/chat/group", chatHandler.CreateGroupChat)
+		api.POST("/chat/userschat", chatHandler.GetUserChats)
+		api.POST("/chat/chatbtwntwouser", chatHandler.GetChatByTwoUsers)
+		api.GET("/chat/:chat_id/chatmembers", chatHandler.GetChatMembers)
+		api.POST("/chat/creategroup", chatHandler.CreateGroupChat)
 
 		// websocket
 		api.GET("/ws", wsHandler.HandleWebSocket)
