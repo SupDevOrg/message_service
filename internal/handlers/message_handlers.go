@@ -65,5 +65,37 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 }
 
 func (h *MessageHandler) ChangeMessage(c *gin.Context) {
+	userIDStr := c.GetHeader("X-Auth-User-Id")
+	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+	userID := uint(userID64)
 
+	var req struct {
+		MessageID uint   `json:"message_id" binding:"required"`
+		Content   string `json:"content" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updatedMsg, err := h.messageService.ChangeMessage(req.MessageID, userID, req.Content)
+	if err != nil {
+		if err.Error() == "message not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if err.Error() == "user cannot change message" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedMsg)
 }

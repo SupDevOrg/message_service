@@ -8,6 +8,7 @@ type Message struct {
 	SenderID  uint      `gorm:"not null" json:"sender_id"`
 	Content   string    `gorm:"type:text;not null" json:"content"`
 	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 
 	Chat Chat `gorm:"foreignKey:ChatID" json:"-"`
 }

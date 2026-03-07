@@ -32,9 +32,6 @@ type MessagesPaginationRequest struct {
 }
 
 func (s *MessageService) GetMessages(r MessagesPaginationRequest, user uint) (*[]models.Message, error) {
-	if r.Chat == 0 {
-		return nil, errors.New("invalid chat ID")
-	}
 	if r.PageNum < 1 {
 		return nil, errors.New("page number must be greater than 0")
 	}
@@ -107,6 +104,32 @@ func (s *MessageService) CreateMessage(chat, sender uint, content string) (*mode
 	}
 
 	return s.messageRepo.Create(chat, sender, content)
+}
+
+func (s *MessageService) ChangeMessage(messageID, userID uint, сontent string) (*models.Message, error) {
+	if messageID == 0 {
+		return nil, errors.New("invalid message id")
+	}
+
+	if сontent == "" {
+		return nil, errors.New("content cannot be empty")
+	}
+
+	msg, err := s.messageRepo.GetByID(messageID)
+	if err != nil {
+		return nil, err
+	}
+
+	if msg.SenderID != userID {
+		return nil, errors.New("user cannot edit this message")
+	}
+
+	updatedmsg, err := s.messageRepo.UpdateContent(messageID, сontent)
+	if err != nil {
+		return nil, err
+	}
+
+	return updatedmsg, nil
 }
 
 /*
