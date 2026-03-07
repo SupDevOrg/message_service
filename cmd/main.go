@@ -32,7 +32,7 @@ func main() {
 	chatMemberService := services.NewChatMemberService(chatRepo, chatMemberRepo)
 	userService := services.NewUserService(userRepo)
 
-	hub := websocket.NewHub(messageService)
+	hub := websocket.NewHub(messageService, chatMemberService)
 	go hub.Run()
 
 	config.LoadKafkaConfig()
