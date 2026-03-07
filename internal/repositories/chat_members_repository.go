@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"message_service/internal/models"
+
 	"gorm.io/gorm"
 )
 

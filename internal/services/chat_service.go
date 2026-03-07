@@ -90,6 +90,35 @@ func (s *ChatService) CreateChat(user1, user2 uint) (*models.Chat, bool, error) 
 	return chat, true, nil
 }
 
+func (s *ChatService) CreateGroup(user1 uint, userlist []uint) (*models.Chat, bool, error) {
+	if len(userlist) == 0 {
+		return nil, false, errors.New("user list is empty")
+	}
+
+	chat, err := s.chatRepo.CreateGroup()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = s.chatMembeRepo.AddMember(chat.ID, user1)
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, usr := range userlist {
+		if usr == user1 {
+			continue
+		}
+
+		_, err := s.chatMembeRepo.AddMember(chat.ID, usr)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+
+	return chat, true, nil
+}
+
 func (s *ChatService) DeleteChat(chat uint, user uint) error {
 	if chat == 0 {
 		return errors.New("invalid chat ID")

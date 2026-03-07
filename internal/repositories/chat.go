@@ -23,6 +23,19 @@ func (r *ChatRepository) Create() (*models.Chat, error) {
 	return chat, nil
 }
 
+func (r *ChatRepository) CreateGroup() (*models.Chat, error) {
+	chat := &models.Chat{
+		IsGroup: true,
+	}
+
+	err := r.db.Create(chat).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return chat, nil
+}
+
 func (r *ChatRepository) FindByID(chatID uint) (*models.Chat, error) {
 	var chat models.Chat
 	err := r.db.First(&chat, chatID).Error
