@@ -73,9 +73,15 @@ func (h *MessageHandler) ChangeMessage(c *gin.Context) {
 	}
 	userID := uint(userID64)
 
+	messageIDStr := c.Param("message_id")
+	messageID, err := strconv.ParseUint(messageIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid message_id"})
+		return
+	}
+
 	var req struct {
-		MessageID uint   `json:"message_id" binding:"required"`
-		Content   string `json:"content" binding:"required"`
+		Content string `json:"content" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -83,7 +89,7 @@ func (h *MessageHandler) ChangeMessage(c *gin.Context) {
 		return
 	}
 
-	updatedMsg, err := h.messageService.ChangeMessage(req.MessageID, userID, req.Content)
+	updatedMsg, err := h.messageService.ChangeMessage(uint(messageID), userID, req.Content)
 	if err != nil {
 		if err.Error() == "message not found" {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
