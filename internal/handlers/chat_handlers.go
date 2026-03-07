@@ -30,10 +30,16 @@ func (h *ChatHandler) AddUserToChat(c *gin.Context) {
 		return
 	}
 
+	chatIDStr := c.Param("chat_id")
+	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat id"})
+		return
+	}
+
 	var req struct {
-		ChatID uint `json:"chat_id" binding:"required"`
-		UserID uint `json:"user_id" binding:"required"`
-		//CurrentUserID uint `json:"current_user_id" binding:"required"`
+		UserID uint `json:"user_id" binding:"required"` // Кого добавляем
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,7 +47,7 @@ func (h *ChatHandler) AddUserToChat(c *gin.Context) {
 		return
 	}
 
-	member, err := h.chatMemberService.AddUserToChat(req.ChatID, req.UserID, uint(userID))
+	member, err := h.chatMemberService.AddUserToChat(uint(chatID), req.UserID, uint(userID))
 	if err != nil {
 		log.Printf("Error adding user to chat: %v", err)
 
@@ -80,37 +86,6 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"user_id": userID,
 		"chats":   chatIDs,
-	})
-}
-
-func (h *ChatHandler) GetChatByTwoUsers(c *gin.Context) {
-	userIDStr := c.GetHeader("X-Auth-User-ID")
-	userID, err := strconv.ParseUint(userIDStr, 10, 64)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
-		return
-	}
-
-	var req struct {
-		PartnerUserID uint `json:"user_id" binding:"required"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	chat, created, err := h.chatService.CreateChat(uint(userID), req.PartnerUserID)
-	if err != nil {
-		log.Printf("Chat creation error: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"chat_id": chat.ID,
-		"created": created,
 	})
 }
 
@@ -164,13 +139,14 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	chat, created, err := h.chatService.CreateChat(uint(userID), req.PartnerUserID)
 	if err != nil {
 		log.Printf("Failed to create/find chat: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create/find chat"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if created {
-		log.Printf("Created new chat: %d between users %d and %d", chat.ID, userID, req.PartnerUserID)
-	}
+	c.JSON(http.StatusOK, gin.H{
+		"chat_id": chat.ID,
+		"created": created,
+	})
 }
 
 func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
