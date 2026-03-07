@@ -148,7 +148,7 @@ func (h *ChatHandler) GetChatMembers(c *gin.Context) {
 	})
 }
 
-func (h *WebSocketHandler) CreateChat(c *gin.Context) {
+func (h *ChatHandler) CreateChat(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID, err := strconv.ParseUint(userIDStr, 10, 64)
 
@@ -173,7 +173,7 @@ func (h *WebSocketHandler) CreateChat(c *gin.Context) {
 	}
 }
 
-func (h *WebSocketHandler) CreateGroupChat(c *gin.Context) {
+func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
 
