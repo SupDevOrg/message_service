@@ -12,13 +12,3 @@ type Message struct {
 
 	Chat Chat `gorm:"foreignKey:ChatID" json:"-"`
 }
-type MessageResponse struct {
-	MessageID uint      `json:"message_id"`
-	Sender    string    `json:"sender"`
-	Content   string    `json:"content"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-type IncomingMessage struct {
-	Content string `json:"content" binding:"required"`
-}
