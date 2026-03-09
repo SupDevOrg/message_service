@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"log"
+	"message_service/internal/dto"
 	"message_service/internal/services"
 	"net/http"
 	"strconv"
@@ -38,9 +39,7 @@ func (h *ChatHandler) AddUserToChat(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		UserID uint `json:"user_id" binding:"required"` // Кого добавляем
-	}
+	var req dto.AddUserToChatRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -76,17 +75,19 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 		return
 	}
 
-	chatIDs, err := h.chatMemberService.GetUserChats(uint(userID))
+	chats, err := h.chatMemberService.GetUserChats(uint(userID))
 	if err != nil {
 		log.Printf("Error getting user chats: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"user_id": userID,
-		"chats":   chatIDs,
-	})
+	resp := dto.GetUserChatsResponse{
+		UserID: uint(userID),
+		Chats:  chats,
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *ChatHandler) GetChatMembers(c *gin.Context) {
@@ -117,10 +118,16 @@ func (h *ChatHandler) GetChatMembers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"chat_id": chatID,
-		"members": members,
-	})
+	resp := dto.GetChatMembersResponse{
+		ChatID:  chatID,
+		Members: make([]dto.UserDTO, len(members)),
+	}
+
+	for i, mmbrs := range members {
+		resp.Members[i] = dto.UserDTO{ID: mmbrs}
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 func (h *ChatHandler) CreateChat(c *gin.Context) {
@@ -132,20 +139,26 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		PartnerUserID uint `json:"user_id" binding:"required"`
+	var req dto.CreateChatRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	chat, created, err := h.chatService.CreateChat(uint(userID), req.PartnerUserID)
+	chat, created, err := h.chatService.CreateChat(uint(userID), req.UserID)
 	if err != nil {
 		log.Printf("Failed to create/find chat: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"chat_id": chat.ID,
-		"created": created,
+	c.JSON(http.StatusOK, dto.CreateChatResponse{
+		Chat: dto.ChatDTO{ID: chat.ID,
+			CreatedAt: chat.CreatedAt,
+			ChatName:  chat.ChatName,
+			IsGroup:   chat.IsGroup},
+		Created: created,
 	})
 }
 
@@ -160,16 +173,14 @@ func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
 
 	userID := uint(userID64)
 
-	var req struct {
-		GroupMates []uint `json:"user_id" binding:"required"`
-	}
+	var req dto.CreateGroupChatRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	chat, created, err := h.chatService.CreateGroup(userID, req.GroupMates)
+	chat, created, err := h.chatService.CreateGroup(userID)
 	if err != nil {
 		log.Printf("Failed to create/find chat: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create/find chat"})
@@ -177,11 +188,24 @@ func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
 	}
 
 	if created {
-		log.Printf("Created new chat: %d between users %d and %d", chat.ID, userID, req.GroupMates)
+		log.Printf("Created new group chat %d, owner: %d", chat.ID, userID)
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"chat_id":  chat.ID,
-		"is_group": chat.IsGroup,
+	usersIDs := make([]uint, 0, len(req.Users))
+	for _, u := range req.Users {
+		usersIDs = append(usersIDs, u.ID)
+	}
+
+	if err := h.chatMemberService.AddUsersToChat(chat.ID, usersIDs, userID); err != nil {
+		log.Printf("Failed to add users to group chat: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to add users to group chat"})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.CreateGroupChatResponse{
+		Chat: dto.ChatDTO{ID: chat.ID,
+			CreatedAt: chat.CreatedAt,
+			ChatName:  chat.ChatName,
+			IsGroup:   chat.IsGroup},
 	})
 }
