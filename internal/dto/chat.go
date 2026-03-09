@@ -5,7 +5,7 @@ import (
 )
 
 type AddUserToChatRequest struct {
-	UserID uint `json:"user_id" example:"12"`
+	UserID uint `json:"user_id" binding:"required" example:"12"`
 }
 
 type ChatDTO struct {
@@ -30,7 +30,7 @@ type GetChatMembersResponse struct {
 }
 
 type CreateChatRequest struct {
-	UserID uint `json:"user_id" example:"12"`
+	UserID uint `json:"user_id" binding:"required" example:"12"`
 }
 
 type CreateChatResponse struct {
@@ -39,10 +39,9 @@ type CreateChatResponse struct {
 }
 
 type CreateGroupChatRequest struct {
-	Users []UserDTO `json:"user_id"`
+	Users []UserDTO `json:"user_id" binding:"required"`
 }
 
 type CreateGroupChatResponse struct {
-	Chat    ChatDTO `json:"chat_id"`
-	IsGroup bool    `json:"is_group" example:"true"`
+	Chat ChatDTO `json:"chat_id"`
 }
