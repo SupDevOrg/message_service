@@ -26,11 +26,11 @@ import (
 // @version 1.0
 // @description API для чатов, сообщений и WebSocket-подключения
 // @BasePath /api/v1/message
-// @schemes http https
+// @schemes http h
 
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
-// @name X-Auth-User-Id
+// @name X-Auth-User-ID
 func main() {
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)

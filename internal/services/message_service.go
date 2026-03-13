@@ -2,11 +2,35 @@ package services
 
 import (
 	"errors"
+	"message_service/internal/dto"
 	"message_service/internal/models"
 	"message_service/internal/repositories"
 
 	"gorm.io/gorm"
 )
+
+func mapMessageToDTO(m models.Message) dto.MessageResponse {
+	return dto.MessageResponse{
+		ID:        m.ID,
+		ChatID:    m.ChatID,
+		SenderID:  m.SenderID,
+		Content:   m.Content,
+		CreatedAt: m.CreatedAt,
+		UpdatedAt: m.UpdatedAt,
+	}
+}
+
+func mapMessagesToDTO(messages []models.Message) dto.MessagesResponse {
+	resp := dto.MessagesResponse{
+		Messages: make([]dto.MessageResponse, len(messages)),
+	}
+
+	for i, m := range messages {
+		resp.Messages[i] = mapMessageToDTO(m)
+	}
+
+	return resp
+}
 
 type MessageService struct {
 	messageRepo    *repositories.MessageRepository
@@ -31,7 +55,7 @@ type MessagesPaginationRequest struct {
 	PageSize int
 }
 
-func (s *MessageService) GetMessages(r MessagesPaginationRequest, user uint) (*[]models.Message, error) {
+func (s *MessageService) GetMessages(r MessagesPaginationRequest, user uint) (*dto.MessagesResponse, error) {
 	if r.PageNum < 1 {
 		return nil, errors.New("page number must be greater than 0")
 	}
@@ -75,10 +99,12 @@ func (s *MessageService) GetMessages(r MessagesPaginationRequest, user uint) (*[
 	if err != nil {
 		return nil, err
 	}
-	return &messages, nil
+
+	response := mapMessagesToDTO(messages)
+	return &response, nil
 }
 
-func (s *MessageService) CreateMessage(chat, sender uint, content string) (*models.Message, error) {
+func (s *MessageService) CreateMessage(chat, sender uint, content string) (*dto.MessageResponse, error) {
 	if chat == 0 {
 		return nil, errors.New("invalid chat ID")
 	}
@@ -103,10 +129,15 @@ func (s *MessageService) CreateMessage(chat, sender uint, content string) (*mode
 		return nil, errors.New("sender is not a member of this chat")
 	}
 
-	return s.messageRepo.Create(chat, sender, content)
+	msg, err := s.messageRepo.Create(chat, sender, content)
+	if err != nil {
+		return nil, err
+	}
+	resp := mapMessageToDTO(*msg)
+	return &resp, nil
 }
 
-func (s *MessageService) ChangeMessage(messageID, userID uint, сontent string) (*models.Message, error) {
+func (s *MessageService) ChangeMessage(messageID, userID uint, сontent string) (*dto.MessageResponse, error) {
 	if messageID == 0 {
 		return nil, errors.New("invalid message id")
 	}
@@ -124,12 +155,13 @@ func (s *MessageService) ChangeMessage(messageID, userID uint, сontent string) 
 		return nil, errors.New("user cannot edit this message")
 	}
 
-	updatedmsg, err := s.messageRepo.UpdateContent(messageID, сontent)
+	updatedMsg, err := s.messageRepo.UpdateContent(messageID, сontent)
 	if err != nil {
 		return nil, err
 	}
 
-	return updatedmsg, nil
+	resp := mapMessageToDTO(*updatedMsg)
+	return &resp, nil
 }
 
 /*
