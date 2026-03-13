@@ -33,7 +33,7 @@ func NewWebSocketHandler(hub *ws.Hub, chatService *services.ChatService) *WebSoc
 }
 
 func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
-	userIDStr := c.GetHeader("X-Auth-User-Id")
+	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID, err := strconv.ParseUint(userIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})

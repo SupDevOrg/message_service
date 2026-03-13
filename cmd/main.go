@@ -16,8 +16,21 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+
+	_ "your_project/docs"
+
+	"github.com/gin-gonic/gin"
 )
 
+// @title Message Service API
+// @version 1.0
+// @description API для чатов, сообщений и WebSocket-подключения
+// @BasePath /api/v1/message
+// @schemes http https
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-Auth-User-Id
 func main() {
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
