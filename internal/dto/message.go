@@ -2,6 +2,10 @@ package dto
 
 import "time"
 
+type ChangeMessageRequest struct {
+	Content string `json:"content" binding:"required" example:"updated text"`
+}
+
 type MessagesResponse struct {
 	Messages []MessageResponse `json:"messages"`
 }

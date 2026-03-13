@@ -32,6 +32,15 @@ func NewWebSocketHandler(hub *ws.Hub, chatService *services.ChatService) *WebSoc
 	}
 }
 
+// HandleWebSocket godoc
+// @Summary Open WebSocket connection
+// @Description Устанавливает WebSocket-соединение для пользователя
+// @Tags websocket
+// @Produce plain
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Success 101 {string} string "Switching Protocols"
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /ws [get]
 func (h *WebSocketHandler) HandleWebSocket(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID, err := strconv.ParseUint(userIDStr, 10, 64)

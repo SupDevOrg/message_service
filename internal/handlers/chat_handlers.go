@@ -66,6 +66,15 @@ func (h *ChatHandler) AddUserToChat(c *gin.Context) {
 	c.JSON(http.StatusOK, member)
 }
 
+// GetUserChats godoc
+// @Summary Get user chats
+// @Description Возвращает список чатов текущего пользователя
+// @Tags chats
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Success 200 {object} dto.GetUserChatsResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /chats [get]
 func (h *ChatHandler) GetUserChats(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID, err := strconv.ParseUint(userIDStr, 10, 64)
@@ -90,6 +99,18 @@ func (h *ChatHandler) GetUserChats(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// GetChatMembers godoc
+// @Summary Get chat members
+// @Description Возвращает список участников чата
+// @Tags chats
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param chat_id path int true "Chat ID"
+// @Success 200 {object} dto.GetChatMembersResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /chats/{chat_id}/members [get]
 func (h *ChatHandler) GetChatMembers(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
@@ -130,6 +151,17 @@ func (h *ChatHandler) GetChatMembers(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// CreateChat godoc
+// @Summary Create private chat
+// @Description Создаёт приватный чат или возвращает существующий
+// @Tags chats
+// @Accept json
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param request body dto.CreateChatRequest true "Create chat request"
+// @Success 200 {object} dto.CreateChatResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /chats [post]
 func (h *ChatHandler) CreateChat(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID, err := strconv.ParseUint(userIDStr, 10, 64)
@@ -162,6 +194,18 @@ func (h *ChatHandler) CreateChat(c *gin.Context) {
 	})
 }
 
+// CreateGroupChat godoc
+// @Summary Create group chat
+// @Description Создаёт групповой чат и добавляет участников
+// @Tags chats
+// @Accept json
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param request body dto.CreateGroupChatRequest true "Create group chat request"
+// @Success 200 {object} dto.CreateGroupChatResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /chats/group [post]
 func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
