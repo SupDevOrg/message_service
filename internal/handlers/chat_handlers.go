@@ -66,6 +66,66 @@ func (h *ChatHandler) AddUserToChat(c *gin.Context) {
 	c.JSON(http.StatusOK, member)
 }
 
+// AddUsersToChat godoc
+// @Summary Add users to chat
+// @Description Добавляет нескольких пользователей в чат
+// @Tags chats
+// @Accept json
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param chat_id path int true "Chat ID"
+// @Param request body dto.AddUsersToChatRequest true "Users to add"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Router /chats/{chat_id}/members [post]
+func (h *ChatHandler) AddUsersToChat(c *gin.Context) {
+	userIDStr := c.GetHeader("X-Auth-User-ID")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	chatIDStr := c.Param("chat_id")
+	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat id"})
+		return
+	}
+
+	var req dto.AddUsersToChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.UserIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_ids is required"})
+		return
+	}
+
+	err = h.chatMemberService.AddUsersToChat(uint(chatID), req.UserIDs, uint(userID))
+	if err != nil {
+		log.Printf("Error adding users to chat: %v", err)
+
+		switch err.Error() {
+		case "chat not found":
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case "only chat members can add new users":
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "users added successfully",
+	})
+}
+
 // GetUserChats godoc
 // @Summary Get user chats
 // @Description Возвращает список чатов текущего пользователя
