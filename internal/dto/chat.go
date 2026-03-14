@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+type AddUsersToChatRequest struct {
+	UserIDs []uint `json:"user_ids" binding:"required"`
+}
+
 type AddUserToChatRequest struct {
 	UserID uint `json:"user_id" binding:"required" example:"12"`
 }
