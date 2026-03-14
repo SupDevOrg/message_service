@@ -16,10 +16,10 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 
 	_ "your_project/docs"
-
-	"github.com/gin-gonic/gin"
 )
 
 // @title Message Service API
@@ -76,6 +76,7 @@ func main() {
 		c.JSON(200, gin.H{"status": "OK"})
 	})
 
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api/v1/message")
 	{
 		// messages

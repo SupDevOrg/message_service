@@ -1,0 +1,619 @@
+{
+    "schemes": [
+        "http",
+        "h"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "API для чатов, сообщений и WebSocket-подключения",
+        "title": "Message Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/api/v1/message",
+    "paths": {
+        "/chats": {
+            "get": {
+                "description": "Возвращает список чатов текущего пользователя",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Get user chats",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetUserChatsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создаёт приватный чат или возвращает существующий",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Create private chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Create chat request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateChatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/chats/group": {
+            "post": {
+                "description": "Создаёт групповой чат и добавляет участников",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Create group chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Create group chat request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateGroupChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateGroupChatResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/chats/{chat_id}/members": {
+            "get": {
+                "description": "Возвращает список участников чата",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Get chat members",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.GetChatMembersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Добавляет нескольких пользователей в чат",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Add users to chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Users to add",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddUsersToChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messages/{chat_id}": {
+            "get": {
+                "description": "Возвращает сообщения чата с пагинацией",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Get messages by chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessagesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/messages/{message_id}": {
+            "put": {
+                "description": "Изменяет текст сообщения",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Change message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Message ID",
+                        "name": "message_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Change message request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ChangeMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ws": {
+            "get": {
+                "description": "Устанавливает WebSocket-соединение для пользователя",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "websocket"
+                ],
+                "summary": "Open WebSocket connection",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.AddUsersToChatRequest": {
+            "type": "object",
+            "required": [
+                "user_ids"
+            ],
+            "properties": {
+                "user_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "dto.ChangeMessageRequest": {
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "example": "updated text"
+                }
+            }
+        },
+        "dto.ChatDTO": {
+            "type": "object",
+            "properties": {
+                "chat_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_group": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.CreateChatRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "integer",
+                    "example": 12
+                }
+            }
+        },
+        "dto.CreateChatResponse": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "$ref": "#/definitions/dto.ChatDTO"
+                },
+                "created": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.CreateGroupChatRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UserDTO"
+                    }
+                }
+            }
+        },
+        "dto.CreateGroupChatResponse": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "$ref": "#/definitions/dto.ChatDTO"
+                }
+            }
+        },
+        "dto.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "invalid request"
+                }
+            }
+        },
+        "dto.GetChatMembersResponse": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "members": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UserDTO"
+                    }
+                }
+            }
+        },
+        "dto.GetUserChatsResponse": {
+            "type": "object",
+            "properties": {
+                "chats": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ChatDTO"
+                    }
+                },
+                "user_id": {
+                    "type": "integer",
+                    "example": 12
+                }
+            }
+        },
+        "dto.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "content": {
+                    "type": "string",
+                    "example": "пипяо"
+                },
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-03-08T14:30:00Z"
+                },
+                "message_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "sender_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-03-08T14:30:00Z"
+                }
+            }
+        },
+        "dto.MessagesResponse": {
+            "type": "object",
+            "properties": {
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.MessageResponse"
+                    }
+                }
+            }
+        },
+        "dto.UserDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "example": 12
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "X-Auth-User-ID",
+            "in": "header"
+        }
+    }
+}

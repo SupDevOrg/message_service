@@ -3,9 +3,10 @@ package kafka
 import (
 	"context"
 	"encoding/json"
-	"github.com/segmentio/kafka-go"
 	"log"
 	"message_service/internal/services"
+
+	"github.com/segmentio/kafka-go"
 )
 
 type Consumer struct {
