@@ -19,7 +19,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	_ "your_project/docs"
+	_ "message_service/docs"
 )
 
 // @title Message Service API
