@@ -14,20 +14,22 @@ type Message struct {
 }
 
 type Hub struct {
-	Clients        map[uint]map[*Client]bool
-	Broadcast      chan *Message
-	Register       chan *Client
-	Unregister     chan *Client
-	MessageService *services.MessageService
+	Clients           map[uint]*Client
+	Broadcast         chan *Message
+	Register          chan *Client
+	Unregister        chan *Client
+	MessageService    *services.MessageService
+	ChatMemberService *services.ChatMemberService
 }
 
-func NewHub(messageService *services.MessageService) *Hub {
+func NewHub(messageService *services.MessageService, chatMemberService *services.ChatMemberService) *Hub {
 	return &Hub{
-		Clients:        make(map[uint]map[*Client]bool),
-		Broadcast:      make(chan *Message),
-		Register:       make(chan *Client),
-		Unregister:     make(chan *Client),
-		MessageService: messageService,
+		Clients:           make(map[uint]*Client),
+		Broadcast:         make(chan *Message),
+		Register:          make(chan *Client),
+		Unregister:        make(chan *Client),
+		MessageService:    messageService,
+		ChatMemberService: chatMemberService,
 	}
 }
 
@@ -35,14 +37,11 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			if h.Clients[client.ChatID] == nil {
-				h.Clients[client.ChatID] = make(map[*Client]bool)
-			}
-			h.Clients[client.ChatID][client] = true
+			h.Clients[client.UserID] = client
 
 		case client := <-h.Unregister:
-			if _, ok := h.Clients[client.ChatID]; ok {
-				delete(h.Clients[client.ChatID], client)
+			if _, ok := h.Clients[client.UserID]; ok {
+				delete(h.Clients, client.UserID)
 				close(client.Recive)
 			}
 
@@ -58,11 +57,18 @@ func (h *Hub) Run() {
 				log.Printf("Failed to marshal message to JSON: %v", err)
 				continue
 			}
-			for client := range h.Clients[message.ChatID] {
-				select {
-				case client.Recive <- msgJSON:
-				default:
-					log.Printf("Failed to send message to client %d", client.UserID)
+
+			participants, err := h.ChatMemberService.GetChatMembers(message.ChatID, message.SenderID)
+			if err != nil {
+				continue
+			}
+
+			for _, userID := range participants {
+				if client, ok := h.Clients[userID]; ok {
+					select {
+					case client.Recive <- msgJSON:
+					default:
+					}
 				}
 			}
 		}

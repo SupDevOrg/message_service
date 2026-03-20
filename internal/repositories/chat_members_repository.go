@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"message_service/internal/models"
+
 	"gorm.io/gorm"
 )
 
@@ -27,6 +28,18 @@ func (r *ChatMemberRepository) AddMember(chat, user uint) (*models.ChatMember, e
 	return member, nil
 }
 
+func (r *ChatMemberRepository) AddMembers(members []models.ChatMember) error {
+	if len(members) == 0 {
+		return nil
+	}
+
+	if err := r.db.Create(&members).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *ChatMemberRepository) RemoveMember(chat, user uint) error {
 	return r.db.Where("chat_id = ? AND user_id = ?", chat, user).
 		Delete(&models.ChatMember{}).Error
@@ -42,6 +55,15 @@ func (r *ChatMemberRepository) GetUserChats(user uint) ([]uint, error) {
 		return nil, err
 	}
 	return chatIds, nil
+}
+
+func (r *ChatMemberRepository) GetChatsByIDs(chatIDs []uint) ([]models.Chat, error) {
+	var chats []models.Chat
+	err := r.db.Where("id IN ?", chatIDs).Find(&chats).Error
+	if err != nil {
+		return nil, err
+	}
+	return chats, nil
 }
 
 func (r *ChatMemberRepository) GetChatMembers(chat uint) ([]uint, error) {
@@ -78,6 +100,27 @@ func (r *ChatMemberRepository) IsUserInChat(chat, user uint) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (r *ChatMemberRepository) GetUsersInChat(chatID uint, userIDs []uint) (map[uint]struct{}, error) {
+	result := make(map[uint]struct{})
+	if len(userIDs) == 0 {
+		return result, nil
+	}
+
+	var existing []uint
+	err := r.db.Model(&models.ChatMember{}).
+		Where("chat_id = ? AND user_id IN ?", chatID, userIDs).
+		Pluck("user_id", &existing).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for _, id := range existing {
+		result[id] = struct{}{}
+	}
+
+	return result, nil
 }
 
 func (r *ChatMemberRepository) FindTwoUsersChat(user1, user2 uint) (uint, error) {

@@ -18,27 +18,6 @@ func NewChatService(chatRepo *repositories.ChatRepository, chatMembeRepo *reposi
 	}
 }
 
-/*
-func (s *ChatService) CreateGroup(userIDs []uint) (*models.Chat, error) {
-	if len(userIDs) == 0 {
-		return nil, errors.New("chat must have at least one member")
-	}
-
-	chat, err := s.chatRepo.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, userID := range userIDs {
-		_, err := s.chatMembeRepo.AddMember(chat.ID, userID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return chat, nil
-}
-*/
-
 func (s *ChatService) GetChat(chat uint) (*models.Chat, error) {
 	if chat == 0 {
 		return nil, errors.New("invalid chat ID")
@@ -84,6 +63,24 @@ func (s *ChatService) CreateChat(user1, user2 uint) (*models.Chat, bool, error) 
 	if err != nil {
 		_ = s.chatMembeRepo.RemoveMember(chat.ID, user1)
 		_ = s.chatRepo.Delete(chat.ID)
+		return nil, false, err
+	}
+
+	return chat, true, nil
+}
+
+func (s *ChatService) CreateGroup(userID uint) (*models.Chat, bool, error) {
+	if userID == 0 {
+		return nil, false, errors.New("invalid owner ID")
+	}
+
+	chat, err := s.chatRepo.CreateGroup()
+	if err != nil {
+		return nil, false, err
+	}
+
+	_, err = s.chatMembeRepo.AddMember(chat.ID, userID)
+	if err != nil {
 		return nil, false, err
 	}
 

@@ -1,0 +1,413 @@
+basePath: /api/v1/message
+definitions:
+  dto.AddUsersToChatRequest:
+    properties:
+      user_ids:
+        items:
+          type: integer
+        type: array
+    required:
+    - user_ids
+    type: object
+  dto.ChangeMessageRequest:
+    properties:
+      content:
+        example: updated text
+        type: string
+    required:
+    - content
+    type: object
+  dto.ChatDTO:
+    properties:
+      chat_name:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      is_group:
+        type: boolean
+    type: object
+  dto.CreateChatRequest:
+    properties:
+      user_id:
+        example: 12
+        type: integer
+    required:
+    - user_id
+    type: object
+  dto.CreateChatResponse:
+    properties:
+      chat_id:
+        $ref: '#/definitions/dto.ChatDTO'
+      created:
+        example: true
+        type: boolean
+    type: object
+  dto.CreateGroupChatRequest:
+    properties:
+      user_id:
+        items:
+          $ref: '#/definitions/dto.UserDTO'
+        type: array
+    required:
+    - user_id
+    type: object
+  dto.CreateGroupChatResponse:
+    properties:
+      chat_id:
+        $ref: '#/definitions/dto.ChatDTO'
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        example: invalid request
+        type: string
+    type: object
+  dto.GetChatMembersResponse:
+    properties:
+      chat_id:
+        example: 12
+        type: integer
+      members:
+        items:
+          $ref: '#/definitions/dto.UserDTO'
+        type: array
+    type: object
+  dto.GetUserChatsResponse:
+    properties:
+      chats:
+        items:
+          $ref: '#/definitions/dto.ChatDTO'
+        type: array
+      user_id:
+        example: 12
+        type: integer
+    type: object
+  dto.MessageResponse:
+    properties:
+      chat_id:
+        example: 1
+        type: integer
+      content:
+        example: пипяо
+        type: string
+      created_at:
+        example: "2026-03-08T14:30:00Z"
+        type: string
+      message_id:
+        example: 1
+        type: integer
+      sender_id:
+        example: 1
+        type: integer
+      updated_at:
+        example: "2026-03-08T14:30:00Z"
+        type: string
+    type: object
+  dto.MessagesResponse:
+    properties:
+      messages:
+        items:
+          $ref: '#/definitions/dto.MessageResponse'
+        type: array
+    type: object
+  dto.UserDTO:
+    properties:
+      id:
+        example: 12
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: API для чатов, сообщений и WebSocket-подключения
+  title: Message Service API
+  version: "1.0"
+paths:
+  /chats:
+    get:
+      description: Возвращает список чатов текущего пользователя
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GetUserChatsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get user chats
+      tags:
+      - chats
+    post:
+      consumes:
+      - application/json
+      description: Создаёт приватный чат или возвращает существующий
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Create chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CreateChatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Create private chat
+      tags:
+      - chats
+  /chats/{chat_id}/members:
+    get:
+      description: Возвращает список участников чата
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.GetChatMembersResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get chat members
+      tags:
+      - chats
+    post:
+      consumes:
+      - application/json
+      description: Добавляет нескольких пользователей в чат
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      - description: Users to add
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddUsersToChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Add users to chat
+      tags:
+      - chats
+  /chats/group:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт групповой чат и добавляет участников
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Create group chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateGroupChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CreateGroupChatResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Create group chat
+      tags:
+      - chats
+  /messages/{chat_id}:
+    get:
+      description: Возвращает сообщения чата с пагинацией
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessagesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get messages by chat
+      tags:
+      - messages
+  /messages/{message_id}:
+    put:
+      consumes:
+      - application/json
+      description: Изменяет текст сообщения
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      - description: Change message request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangeMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Change message
+      tags:
+      - messages
+  /ws:
+    get:
+      description: Устанавливает WebSocket-соединение для пользователя
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "101":
+          description: Switching Protocols
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Open WebSocket connection
+      tags:
+      - websocket
+schemes:
+- http
+- h
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-Auth-User-ID
+    type: apiKey
+swagger: "2.0"

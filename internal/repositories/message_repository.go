@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"message_service/internal/models"
 
 	"gorm.io/gorm"
@@ -56,8 +57,24 @@ func (r *MessageRepository) GetByID(messageID uint) (*models.Message, error) {
 	return &message, nil
 }
 
-func (r *MessageRepository) Delete(messageID uint) error {
-	return r.db.Delete(&models.Message{}, messageID).Error
+func (r *MessageRepository) UpdateContent(messageID uint, newContent string) (*models.Message, error) {
+	var message models.Message
+
+	err := r.db.First(&message, messageID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, errors.New("message not found")
+		}
+		return nil, err
+	}
+
+	message.Content = newContent
+	err = r.db.Save(&message).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &message, nil
 }
 
 func (r *MessageRepository) CountMsgsInChat(chatID uint) (int64, error) {
@@ -68,4 +85,8 @@ func (r *MessageRepository) CountMsgsInChat(chatID uint) (int64, error) {
 		Count(&count).Error
 
 	return count, err
+}
+
+func (r *MessageRepository) Delete(messageID uint) error {
+	return r.db.Delete(&models.Message{}, messageID).Error
 }

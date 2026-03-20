@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"message_service/internal/dto"
 	"message_service/internal/models"
 	"message_service/internal/repositories"
 
@@ -21,44 +22,70 @@ func NewChatMemberService(chatRepo *repositories.ChatRepository, chatMemberRepo 
 }
 
 func (s *ChatMemberService) AddUserToChat(chat, adduser, chatmmbr uint) (*models.ChatMember, error) {
-	if chat == 0 {
-		return nil, errors.New("invalid chat ID")
-	}
-	if adduser == 0 {
-		return nil, errors.New("invalid user ID")
+	return nil, nil
+}
+
+func (s *ChatMemberService) AddUsersToChat(chatID uint, usersToAdd []uint, chatmember uint) error {
+	if chatID == 0 {
+		return errors.New("invalid chat ID")
 	}
 
-	_, err := s.chatRepo.FindByID(chat)
+	_, err := s.chatRepo.FindByID(chatID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("chat not found")
+			return errors.New("chat not found")
 		}
-		return nil, err
+		return err
 	}
 
-	isMmbr, err := s.chatMemberRepo.IsUserInChat(chat, chatmmbr)
+	isMember, err := s.chatMemberRepo.IsUserInChat(chatID, chatmember)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if !isMmbr {
-		return nil, errors.New("only chat members can add new users")
+	if !isMember {
+		return errors.New("only chat members can add new users")
 	}
 
-	inChat, err := s.chatMemberRepo.IsUserInChat(chat, adduser)
+	if len(usersToAdd) == 0 {
+		return nil
+	}
+
+	uniqUsers := make([]uint, 0, len(usersToAdd))
+	m := make(map[uint]struct{}, len(usersToAdd))
+
+	for _, userID := range usersToAdd {
+		if _, ok := m[userID]; ok {
+			continue
+		}
+		m[userID], uniqUsers = struct{}{}, append(uniqUsers, userID)
+	}
+
+	if len(uniqUsers) == 0 {
+		return nil
+	}
+
+	alredayInChat, err := s.chatMemberRepo.GetUsersInChat(chatID, uniqUsers)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if inChat {
-		return nil, errors.New("user is already a member of this chat")
+	members := make([]models.ChatMember, 0, len(uniqUsers))
+	for _, userID := range uniqUsers {
+		if _, ok := alredayInChat[userID]; ok {
+			continue
+		}
+
+		members = append(members, models.ChatMember{
+			ChatID: chatID,
+			UserID: userID,
+		})
 	}
 
-	member, err := s.chatMemberRepo.AddMember(chat, adduser)
-	if err != nil {
-		return nil, err
+	if len(members) == 0 {
+		return nil
 	}
 
-	return member, nil
+	return s.chatMemberRepo.AddMembers(members)
 }
 
 func (s *ChatMemberService) RemoveUserFromChat(chat, removeuser, chatuser uint) error {
@@ -112,12 +139,29 @@ func (s *ChatMemberService) GetChatMembers(chat uint, user uint) ([]uint, error)
 	return s.chatMemberRepo.GetChatMembers(chat)
 }
 
-func (s *ChatMemberService) GetUserChats(user uint) ([]uint, error) {
+func (s *ChatMemberService) GetUserChats(user uint) ([]dto.ChatDTO, error) {
 	if user == 0 {
 		return nil, errors.New("invalid user ID")
 	}
 
-	return s.chatMemberRepo.GetUserChats(user)
+	chatIDs, err := s.chatMemberRepo.GetUserChats(user)
+	if err != nil {
+		return nil, err
+	}
+
+	modelChats, err := s.chatMemberRepo.GetChatsByIDs(chatIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	var dtochats []dto.ChatDTO
+	for _, chat := range modelChats {
+		dtochats = append(dtochats, dto.ChatDTO{ID: chat.ID,
+			CreatedAt: chat.CreatedAt,
+			ChatName:  chat.ChatName,
+			IsGroup:   chat.IsGroup})
+	}
+	return dtochats, nil
 }
 
 func (s *ChatMemberService) GetChatMemberCount(chat uint) (int64, error) {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
 	"log"
 	database "message_service/internal/data_base"
 	"message_service/internal/handlers"
@@ -15,8 +14,23 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "message_service/docs"
 )
 
+// @title Message Service API
+// @version 1.0
+// @description API для чатов, сообщений и WebSocket-подключения
+// @BasePath /api/v1/message
+// @schemes http h
+
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-Auth-User-ID
 func main() {
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
@@ -32,7 +46,7 @@ func main() {
 	chatMemberService := services.NewChatMemberService(chatRepo, chatMemberRepo)
 	userService := services.NewUserService(userRepo)
 
-	hub := websocket.NewHub(messageService)
+	hub := websocket.NewHub(messageService, chatMemberService)
 	go hub.Run()
 
 	config.LoadKafkaConfig()
@@ -62,12 +76,20 @@ func main() {
 		c.JSON(200, gin.H{"status": "OK"})
 	})
 
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	api := router.Group("/api/v1/message")
 	{
+		// messages
 		api.GET("/messages/:chat_id", messageHandler.GetMessages)
-		api.POST("/chat/adduser", chatHandler.AddUserToChat)
-		api.POST("/chat/user", chatHandler.GetUserChats)
-		api.POST("/chat/bytwouser", chatHandler.GetChatByTwoUsers)
+		api.PUT("/messages/:message_id", messageHandler.ChangeMessage)
+		// api.DELETE("/messages/:message_id", messageHandler.DeleteMessage)
+		// chat
+		api.GET("/chats", chatHandler.GetUserChats)
+		api.POST("/chats", chatHandler.CreateChat)
+		api.POST("/chats/group", chatHandler.CreateGroupChat)
+		api.GET("/chats/:chat_id/members", chatHandler.GetChatMembers)
+		api.POST("/chats/:chat_id/members", chatHandler.AddUserToChat)
+		// websocket
 		api.GET("/ws", wsHandler.HandleWebSocket)
 	}
 

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"message_service/internal/models"
+	"message_service/internal/dto"
 	"message_service/internal/services"
 
 	"github.com/gin-gonic/gin"
@@ -15,16 +15,24 @@ type MessageHandler struct {
 	messageService *services.MessageService
 }
 
-type MessagesResponse struct {
-	Messages []models.Message `json:"messages"`
-}
-
 func NewMessageHandler(messageService *services.MessageService) *MessageHandler {
 	return &MessageHandler{
 		messageService: messageService,
 	}
 }
 
+// GetMessages godoc
+// @Summary Get messages by chat
+// @Description Возвращает сообщения чата с пагинацией
+// @Tags messages
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param chat_id path int true "Chat ID"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int true "Page size"
+// @Success 200 {object} dto.MessagesResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /messages/{chat_id} [get]
 func (h *MessageHandler) GetMessages(c *gin.Context) {
 	chatIDStr := c.Param("chat_id")
 	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)
@@ -41,7 +49,8 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 		return
 	}
 
-	userID, err := strconv.ParseUint(c.Query("user_id"), 10, 64)
+	userIDStr := c.GetHeader("X-Auth-User-ID")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
 		return
@@ -60,5 +69,60 @@ func (h *MessageHandler) GetMessages(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, MessagesResponse{Messages: *messages})
+	c.JSON(http.StatusOK, messages)
+}
+
+// ChangeMessage godoc
+// @Summary Change message
+// @Description Изменяет текст сообщения
+// @Tags messages
+// @Accept json
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param message_id path int true "Message ID"
+// @Param request body dto.ChangeMessageRequest true "Change message request"
+// @Success 200 {object} dto.MessageResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /messages/{message_id} [put]
+func (h *MessageHandler) ChangeMessage(c *gin.Context) {
+	userIDStr := c.GetHeader("X-Auth-User-ID")
+	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+	userID := uint(userID64)
+
+	messageIDStr := c.Param("message_id")
+	messageID, err := strconv.ParseUint(messageIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid message_id"})
+		return
+	}
+
+	var req dto.ChangeMessageRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	updatedMsg, err := h.messageService.ChangeMessage(uint(messageID), userID, req.Content)
+	if err != nil {
+		if err.Error() == "message not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if err.Error() == "user cannot change message" {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, updatedMsg)
 }
