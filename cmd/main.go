@@ -89,7 +89,6 @@ func main() {
 		api.POST("/chats", chatHandler.CreateChat)
 		api.POST("/chats/group", chatHandler.CreateGroupChat)
 		api.GET("/chats/:chat_id/members", chatHandler.GetChatMembers)
-		api.POST("/chats/:chat_id/members", chatHandler.AddUserToChat)
 		api.POST("/chats/:chat_id/members", chatHandler.AddUsersToChat)
 		// websocket
 		api.GET("/ws", wsHandler.HandleWebSocket)
