@@ -32,6 +32,7 @@ import (
 // @in header
 // @name X-Auth-User-ID
 func main() {
+	config.GetDBString() 
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
