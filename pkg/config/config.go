@@ -4,15 +4,18 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	DBurl        string
-	KafkaBrokers string
-	KafkaTopic   string
-	KafkaGroupID string
+	DBurl                   string
+	KafkaBrokers            string
+	KafkaTopic              string
+	KafkaGroupID            string
+	NotificationGRPCAddr    string
+	NotificationGRPCTimeout time.Duration
 }
 
 var Cnfg Config
@@ -58,4 +61,27 @@ func LoadKafkaConfig() {
 	if Cnfg.KafkaGroupID == "" {
 		Cnfg.KafkaGroupID = "message-service-group"
 	}
+}
+
+func LoadNotificationConfig() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("Error loading .env file")
+	}
+
+	Cnfg.NotificationGRPCAddr = os.Getenv("NOTIFICATION_GRPC_ADDR")
+
+	timeout := os.Getenv("NOTIFICATION_GRPC_TIMEOUT")
+	if timeout == "" {
+		Cnfg.NotificationGRPCTimeout = 500 * time.Millisecond
+		return
+	}
+
+	parsedTimeout, err := time.ParseDuration(timeout)
+	if err != nil {
+		log.Printf("invalid NOTIFICATION_GRPC_TIMEOUT %q, using default 500ms", timeout)
+		Cnfg.NotificationGRPCTimeout = 500 * time.Millisecond
+		return
+	}
+
+	Cnfg.NotificationGRPCTimeout = parsedTimeout
 }

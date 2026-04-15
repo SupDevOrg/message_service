@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
+	"message_service/internal/dto"
+	"message_service/internal/notification"
 	"message_service/internal/services"
 )
 
@@ -20,9 +22,16 @@ type Hub struct {
 	Unregister        chan *Client
 	MessageService    *services.MessageService
 	ChatMemberService *services.ChatMemberService
+	UserService       *services.UserService
+	Notification      notification.Client
 }
 
-func NewHub(messageService *services.MessageService, chatMemberService *services.ChatMemberService) *Hub {
+func NewHub(
+	messageService *services.MessageService,
+	chatMemberService *services.ChatMemberService,
+	userService *services.UserService,
+	notificationClient notification.Client,
+) *Hub {
 	return &Hub{
 		Clients:           make(map[uint]*Client),
 		Broadcast:         make(chan *Message),
@@ -30,6 +39,8 @@ func NewHub(messageService *services.MessageService, chatMemberService *services
 		Unregister:        make(chan *Client),
 		MessageService:    messageService,
 		ChatMemberService: chatMemberService,
+		UserService:       userService,
+		Notification:      notificationClient,
 	}
 }
 
@@ -63,6 +74,8 @@ func (h *Hub) Run() {
 				continue
 			}
 
+			h.sendNotification(savedMsg, participants)
+
 			for _, userID := range participants {
 				if client, ok := h.Clients[userID]; ok {
 					select {
@@ -73,4 +86,44 @@ func (h *Hub) Run() {
 			}
 		}
 	}
+}
+
+func (h *Hub) sendNotification(savedMsg *dto.MessageResponse, participants []uint) {
+	recipientIDs := make([]uint64, 0, len(participants))
+	for _, userID := range participants {
+		if userID == savedMsg.SenderID {
+			continue
+		}
+		recipientIDs = append(recipientIDs, uint64(userID))
+	}
+
+	if len(recipientIDs) == 0 {
+		return
+	}
+
+	senderUsername := ""
+	if h.UserService != nil {
+		sender, err := h.UserService.GetByID(savedMsg.SenderID)
+		if err != nil {
+			log.Printf("Failed to load sender for notification: %v", err)
+		} else {
+			senderUsername = sender.Username
+		}
+	}
+
+	payload := notification.MessageNotification{
+		MessageID:      uint64(savedMsg.ID),
+		ChatID:         uint64(savedMsg.ChatID),
+		SenderID:       uint64(savedMsg.SenderID),
+		SenderUsername: senderUsername,
+		Content:        savedMsg.Content,
+		RecipientIDs:   recipientIDs,
+		CreatedAt:      savedMsg.CreatedAt,
+	}
+
+	go func() {
+		if err := h.Notification.SendMessage(payload); err != nil {
+			log.Printf("Failed to send message notification: %v", err)
+		}
+	}()
 }

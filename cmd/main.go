@@ -6,6 +6,7 @@ import (
 	database "message_service/internal/data_base"
 	"message_service/internal/handlers"
 	"message_service/internal/kafka"
+	"message_service/internal/notification"
 	"message_service/internal/repositories"
 	"message_service/internal/services"
 	"message_service/internal/websocket"
@@ -32,7 +33,7 @@ import (
 // @in header
 // @name X-Auth-User-ID
 func main() {
-	config.GetDBString() 
+	config.GetDBString()
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -47,7 +48,24 @@ func main() {
 	chatMemberService := services.NewChatMemberService(chatRepo, chatMemberRepo)
 	userService := services.NewUserService(userRepo)
 
-	hub := websocket.NewHub(messageService, chatMemberService)
+	config.LoadNotificationConfig()
+	notificationClient, err := notification.NewClient(
+		config.Cnfg.NotificationGRPCAddr,
+		config.Cnfg.NotificationGRPCTimeout,
+	)
+	if err != nil {
+		log.Printf("failed to initialize notification grpc client: %v", err)
+		notificationClient, _ = notification.NewClient("", 0)
+	} else if config.Cnfg.NotificationGRPCAddr == "" {
+		log.Println("notification grpc client disabled: NOTIFICATION_GRPC_ADDR is empty")
+	}
+	defer func() {
+		if err := notificationClient.Close(); err != nil {
+			log.Printf("error closing notification grpc client: %v", err)
+		}
+	}()
+
+	hub := websocket.NewHub(messageService, chatMemberService, userService, notificationClient)
 	go hub.Run()
 
 	config.LoadKafkaConfig()
