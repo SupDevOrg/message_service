@@ -50,7 +50,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Создаёт приватный чат или возвращает существующий",
+                "description": "Создаёт приватный или групповой чат",
                 "consumes": [
                     "application/json"
                 ],
@@ -60,7 +60,7 @@ const docTemplate = `{
                 "tags": [
                     "chats"
                 ],
-                "summary": "Create private chat",
+                "summary": "Create chat",
                 "parameters": [
                     {
                         "type": "string",
@@ -91,13 +91,19 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
                     }
                 }
             }
         },
-        "/chats/group": {
-            "post": {
-                "description": "Создаёт групповой чат и добавляет участников",
+        "/chats/{chat_id}": {
+            "patch": {
+                "description": "Обновляет данные чата",
                 "consumes": [
                     "application/json"
                 ],
@@ -107,7 +113,7 @@ const docTemplate = `{
                 "tags": [
                     "chats"
                 ],
-                "summary": "Create group chat",
+                "summary": "Update chat name",
                 "parameters": [
                     {
                         "type": "string",
@@ -117,12 +123,19 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Create group chat request",
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update chat request",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateGroupChatRequest"
+                            "$ref": "#/definitions/dto.UpdateChatRequest"
                         }
                     }
                 ],
@@ -130,11 +143,23 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dto.CreateGroupChatResponse"
+                            "$ref": "#/definitions/dto.ChatDTO"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -269,14 +294,78 @@ const docTemplate = `{
                 }
             }
         },
-        "/messages/{chat_id}": {
+        "/chats/{chat_id}/members/{user_id}": {
+            "delete": {
+                "description": "Удаляет пользователя из чата",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Remove user from chat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/chats/{chat_id}/messages": {
             "get": {
                 "description": "Возвращает сообщения чата с пагинацией",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "messages"
+                    "chats"
                 ],
                 "summary": "Get messages by chat",
                 "parameters": [
@@ -323,9 +412,137 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Создаёт новое сообщение в чате",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Create message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Chat ID",
+                        "name": "chat_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Create message request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateMessageRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
             }
         },
         "/messages/{message_id}": {
+            "get": {
+                "description": "Возвращает одно сообщение по ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Get message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Message ID",
+                        "name": "message_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "put": {
                 "description": "Изменяет текст сообщения",
                 "consumes": [
@@ -368,6 +585,64 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/dto.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удаляет сообщение",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "messages"
+                ],
+                "summary": "Delete message",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authenticated user ID",
+                        "name": "X-Auth-User-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Message ID",
+                        "name": "message_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "400": {
@@ -456,7 +731,7 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "example": "updated text"
+                    "example": "новый пипяо"
                 }
             }
         },
@@ -480,12 +755,25 @@ const docTemplate = `{
         "dto.CreateChatRequest": {
             "type": "object",
             "required": [
-                "user_id"
+                "type",
+                "users"
             ],
             "properties": {
-                "user_id": {
-                    "type": "integer",
-                    "example": 12
+                "chat_name": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "private",
+                        "group"
+                    ]
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
                 }
             }
         },
@@ -501,25 +789,15 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.CreateGroupChatRequest": {
+        "dto.CreateMessageRequest": {
             "type": "object",
             "required": [
-                "user_id"
+                "content"
             ],
             "properties": {
-                "user_id": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.UserDTO"
-                    }
-                }
-            }
-        },
-        "dto.CreateGroupChatResponse": {
-            "type": "object",
-            "properties": {
-                "chat_id": {
-                    "$ref": "#/definitions/dto.ChatDTO"
+                "content": {
+                    "type": "string",
+                    "example": "пипяо"
                 }
             }
         },
@@ -599,6 +877,18 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/dto.MessageResponse"
                     }
+                }
+            }
+        },
+        "dto.UpdateChatRequest": {
+            "type": "object",
+            "required": [
+                "chat_name"
+            ],
+            "properties": {
+                "chat_name": {
+                    "type": "string",
+                    "example": "hello there"
                 }
             }
         },

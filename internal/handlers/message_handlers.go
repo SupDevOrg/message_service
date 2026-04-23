@@ -24,7 +24,7 @@ func NewMessageHandler(messageService *services.MessageService) *MessageHandler 
 // CreateMessage godoc
 // @Summary Create message
 // @Description Создаёт новое сообщение в чате
-// @Tags messages
+// @Tags chats
 // @Accept json
 // @Produce json
 // @Param X-Auth-User-ID header string true "Authenticated user ID"
@@ -125,7 +125,7 @@ func (h *MessageHandler) GetMessage(c *gin.Context) {
 // GetMessages godoc
 // @Summary Get messages by chat
 // @Description Возвращает сообщения чата с пагинацией
-// @Tags messages
+// @Tags chats
 // @Produce json
 // @Param X-Auth-User-ID header string true "Authenticated user ID"
 // @Param chat_id path int true "Chat ID"
@@ -133,7 +133,7 @@ func (h *MessageHandler) GetMessage(c *gin.Context) {
 // @Param page_size query int true "Page size"
 // @Success 200 {object} dto.MessagesResponse
 // @Failure 400 {object} dto.ErrorResponse
-// @Router /messages/{chat_id} [get]
+// @Router /chats/{chat_id}/messages [get]
 func (h *MessageHandler) GetMessages(c *gin.Context) {
 	chatIDStr := c.Param("chat_id")
 	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)

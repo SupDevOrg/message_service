@@ -212,7 +212,7 @@ func (h *ChatHandler) GetChatMembers(c *gin.Context) {
 }
 
 // UpdateChat godoc
-// @Summary Update chat
+// @Summary Update chat name
 // @Description Обновляет данные чата
 // @Tags chats
 // @Accept json
@@ -270,8 +270,8 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 }
 
 // CreateChat godoc
-// @Summary Create private chat
-// @Description Создаёт приватный чат или возвращает существующий
+// @Summary Create chat
+// @Description Создаёт приватный или групповой чат
 // @Tags chats
 // @Accept json
 // @Produce json
@@ -279,55 +279,11 @@ func (h *ChatHandler) UpdateChat(c *gin.Context) {
 // @Param request body dto.CreateChatRequest true "Create chat request"
 // @Success 200 {object} dto.CreateChatResponse
 // @Failure 400 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
 // @Router /chats [post]
 func (h *ChatHandler) CreateChat(c *gin.Context) {
 	userIDStr := c.GetHeader("X-Auth-User-ID")
-	userID, err := strconv.ParseUint(userIDStr, 10, 64)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
-		return
-	}
-
-	var req dto.CreateChatRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	chat, created, err := h.chatService.CreateChat(uint(userID), req.UserID)
-	if err != nil {
-		log.Printf("Failed to create/find chat: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.CreateChatResponse{
-		Chat: dto.ChatDTO{ID: chat.ID,
-			CreatedAt: chat.CreatedAt,
-			ChatName:  chat.ChatName,
-			IsGroup:   chat.IsGroup},
-		Created: created,
-	})
-}
-
-// CreateGroupChat godoc
-// @Summary Create group chat
-// @Description Создаёт групповой чат и добавляет участников
-// @Tags chats
-// @Accept json
-// @Produce json
-// @Param X-Auth-User-ID header string true "Authenticated user ID"
-// @Param request body dto.CreateGroupChatRequest true "Create group chat request"
-// @Success 200 {object} dto.CreateGroupChatResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Failure 500 {object} dto.ErrorResponse
-// @Router /chats/group [post]
-func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
-	userIDStr := c.GetHeader("X-Auth-User-ID")
 	userID64, err := strconv.ParseUint(userIDStr, 10, 64)
-
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
 		return
@@ -335,40 +291,28 @@ func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
 
 	userID := uint(userID64)
 
-	var req dto.CreateGroupChatRequest
-
+	var req dto.CreateChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	chat, created, err := h.chatService.CreateGroup(userID)
+	chat, created, err := h.chatService.CreateChat(userID, req)
+
 	if err != nil {
-		log.Printf("Failed to create/find chat: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create/find chat"})
+		log.Printf("Failed to create chat: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if created {
-		log.Printf("Created new group chat %d, owner: %d", chat.ID, userID)
-	}
-
-	usersIDs := make([]uint, 0, len(req.Users))
-	for _, u := range req.Users {
-		usersIDs = append(usersIDs, u.ID)
-	}
-
-	if err := h.chatMemberService.AddUsersToChat(chat.ID, usersIDs, userID); err != nil {
-		log.Printf("Failed to add users to group chat: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to add users to group chat"})
-		return
-	}
-
-	c.JSON(http.StatusOK, dto.CreateGroupChatResponse{
-		Chat: dto.ChatDTO{ID: chat.ID,
+	c.JSON(http.StatusOK, dto.CreateChatResponse{
+		Chat: dto.ChatDTO{
+			ID:        chat.ID,
 			CreatedAt: chat.CreatedAt,
 			ChatName:  chat.ChatName,
-			IsGroup:   chat.IsGroup},
+			IsGroup:   chat.IsGroup,
+		},
+		Created: created,
 	})
 }
 

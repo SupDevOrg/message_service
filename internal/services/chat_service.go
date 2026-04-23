@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"message_service/internal/dto"
 	"message_service/internal/models"
 	"message_service/internal/repositories"
 
@@ -66,16 +67,39 @@ func (s *ChatService) UpdateChat(chatID uint, userID uint, chatName string) (*mo
 	return updatedChat, nil
 }
 
-func (s *ChatService) CreateChat(user1, user2 uint) (*models.Chat, bool, error) {
-	if user1 == 0 || user2 == 0 {
+// Единая точка входа под POST /chats
+func (s *ChatService) CreateChat(ownerID uint, req dto.CreateChatRequest) (*models.Chat, bool, error) {
+	if ownerID == 0 {
+		return nil, false, errors.New("invalid owner ID")
+	}
+
+	switch req.Type {
+	case "private":
+		return s.createPrivateChat(ownerID, req.UserIDs)
+
+	case "group":
+		return s.createGroupChat(ownerID, req.ChatName, req.UserIDs)
+
+	default:
+		return nil, false, errors.New("invalid chat type")
+	}
+}
+
+func (s *ChatService) createPrivateChat(ownerID uint, userIDs []uint) (*models.Chat, bool, error) {
+	if len(userIDs) != 1 {
+		return nil, false, errors.New("private chat must contain exactly one user")
+	}
+
+	targetUserID := userIDs[0]
+	if targetUserID == 0 {
 		return nil, false, errors.New("invalid user IDs")
 	}
 
-	if user1 == user2 {
+	if ownerID == targetUserID {
 		return nil, false, errors.New("cannot create private chat with yourself")
 	}
 
-	exst, err := s.chatMembeRepo.FindTwoUsersChat(user1, user2)
+	exst, err := s.chatMembeRepo.FindTwoUsersChat(ownerID, targetUserID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -93,15 +117,15 @@ func (s *ChatService) CreateChat(user1, user2 uint) (*models.Chat, bool, error) 
 		return nil, false, err
 	}
 
-	_, err = s.chatMembeRepo.AddMember(chat.ID, user1)
+	_, err = s.chatMembeRepo.AddMember(chat.ID, ownerID)
 	if err != nil {
 		_ = s.chatRepo.Delete(chat.ID)
 		return nil, false, err
 	}
 
-	_, err = s.chatMembeRepo.AddMember(chat.ID, user2)
+	_, err = s.chatMembeRepo.AddMember(chat.ID, targetUserID)
 	if err != nil {
-		_ = s.chatMembeRepo.RemoveMember(chat.ID, user1)
+		_ = s.chatMembeRepo.RemoveMember(chat.ID, ownerID)
 		_ = s.chatRepo.Delete(chat.ID)
 		return nil, false, err
 	}
@@ -109,9 +133,13 @@ func (s *ChatService) CreateChat(user1, user2 uint) (*models.Chat, bool, error) 
 	return chat, true, nil
 }
 
-func (s *ChatService) CreateGroup(userID uint) (*models.Chat, bool, error) {
-	if userID == 0 {
-		return nil, false, errors.New("invalid owner ID")
+func (s *ChatService) createGroupChat(ownerID uint, chatName string, userIDs []uint) (*models.Chat, bool, error) {
+	if chatName == "" {
+		return nil, false, errors.New("chat_name is required for group chat")
+	}
+
+	if len(userIDs) == 0 {
+		return nil, false, errors.New("group chat must contain at least one user")
 	}
 
 	chat, err := s.chatRepo.CreateGroup()
@@ -119,12 +147,48 @@ func (s *ChatService) CreateGroup(userID uint) (*models.Chat, bool, error) {
 		return nil, false, err
 	}
 
-	_, err = s.chatMembeRepo.AddMember(chat.ID, userID)
+	_, err = s.chatMembeRepo.AddMember(chat.ID, ownerID)
 	if err != nil {
+		_ = s.chatRepo.Delete(chat.ID)
 		return nil, false, err
 	}
 
-	return chat, true, nil
+	uniqUsers := make([]uint, 0, len(userIDs))
+	seen := make(map[uint]struct{}, len(userIDs))
+
+	for _, userID := range userIDs {
+		if userID == 0 {
+			_ = s.chatRepo.Delete(chat.ID)
+			return nil, false, errors.New("invalid user IDs")
+		}
+
+		if userID == ownerID {
+			continue
+		}
+
+		if _, ok := seen[userID]; ok {
+			continue
+		}
+
+		seen[userID] = struct{}{}
+		uniqUsers = append(uniqUsers, userID)
+	}
+
+	for _, userID := range uniqUsers {
+		_, err = s.chatMembeRepo.AddMember(chat.ID, userID)
+		if err != nil {
+			_ = s.chatRepo.Delete(chat.ID)
+			return nil, false, err
+		}
+	}
+
+	updatedChat, err := s.chatRepo.UpdateChatName(chat.ID, chatName)
+	if err != nil {
+		_ = s.chatRepo.Delete(chat.ID)
+		return nil, false, err
+	}
+
+	return updatedChat, true, nil
 }
 
 func (s *ChatService) DeleteChat(chat uint, user uint) error {

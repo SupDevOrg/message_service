@@ -37,8 +37,16 @@ type GetChatMembersResponse struct {
 	Members []UserDTO `json:"members"`
 }
 
+/*
 type CreateChatRequest struct {
 	UserID uint `json:"user_id" binding:"required" example:"12"`
+}
+*/
+
+type CreateChatRequest struct {
+	Type     string `json:"type" binding:"required,oneof=private group"`
+	ChatName string `json:"chat_name"`
+	UserIDs  []uint `json:"users" binding:"required"`
 }
 
 type CreateChatResponse struct {
