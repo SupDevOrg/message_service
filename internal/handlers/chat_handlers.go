@@ -211,6 +211,64 @@ func (h *ChatHandler) GetChatMembers(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+// UpdateChat godoc
+// @Summary Update chat
+// @Description Обновляет данные чата
+// @Tags chats
+// @Accept json
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param chat_id path int true "Chat ID"
+// @Param request body dto.UpdateChatRequest true "Update chat request"
+// @Success 200 {object} dto.ChatDTO
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /chats/{chat_id} [patch]
+func (h *ChatHandler) UpdateChat(c *gin.Context) {
+	userIDStr := c.GetHeader("X-Auth-User-ID")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	chatIDStr := c.Param("chat_id")
+	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat id"})
+		return
+	}
+
+	var req dto.UpdateChatRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	chat, err := h.chatService.UpdateChat(uint(chatID), uint(userID), req.ChatName)
+	if err != nil {
+		log.Printf("Failed to update chat: %v", err)
+		switch err.Error() {
+		case "chat not found":
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case "user is not a member of this chat":
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ChatDTO{
+		ID:        chat.ID,
+		CreatedAt: chat.CreatedAt,
+		ChatName:  chat.ChatName,
+		IsGroup:   chat.IsGroup,
+	})
+}
+
 // CreateChat godoc
 // @Summary Create private chat
 // @Description Создаёт приватный чат или возвращает существующий

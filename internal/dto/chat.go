@@ -12,6 +12,10 @@ type AddUserToChatRequest struct {
 	UserID uint `json:"user_id" binding:"required" example:"12"`
 }
 
+type UpdateChatRequest struct {
+	ChatName string `json:"chat_name" binding:"required" example:"hello there"`
+}
+
 type ChatDTO struct {
 	ID        uint      `json:"id"`
 	CreatedAt time.Time `json:"created_at"`

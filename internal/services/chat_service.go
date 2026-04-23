@@ -4,6 +4,8 @@ import (
 	"errors"
 	"message_service/internal/models"
 	"message_service/internal/repositories"
+
+	"gorm.io/gorm"
 )
 
 type ChatService struct {
@@ -24,6 +26,44 @@ func (s *ChatService) GetChat(chat uint) (*models.Chat, error) {
 	}
 
 	return s.chatRepo.FindByID(chat)
+}
+
+func (s *ChatService) UpdateChat(chatID uint, userID uint, chatName string) (*models.Chat, error) {
+	if chatID == 0 {
+		return nil, errors.New("invalid chat ID")
+	}
+	if userID == 0 {
+		return nil, errors.New("invalid user ID")
+	}
+	if chatName == "" {
+		return nil, errors.New("chat name cannot be empty")
+	}
+
+	_, err := s.chatRepo.FindByID(chatID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("chat not found")
+		}
+		return nil, err
+	}
+
+	isMember, err := s.chatMembeRepo.IsUserInChat(chatID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, errors.New("user is not a member of this chat")
+	}
+
+	updatedChat, err := s.chatRepo.UpdateChatName(chatID, chatName)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("chat not found")
+		}
+		return nil, err
+	}
+
+	return updatedChat, nil
 }
 
 func (s *ChatService) CreateChat(user1, user2 uint) (*models.Chat, bool, error) {

@@ -14,6 +14,22 @@ func NewChatRepository(db *gorm.DB) *ChatRepository {
 	return &ChatRepository{db: db}
 }
 
+func (r *ChatRepository) UpdateChatName(chatID uint, chatName string) (*models.Chat, error) {
+	var chat models.Chat
+
+	err := r.db.First(&chat, chatID).Error
+	if err != nil {
+		return nil, err
+	}
+
+	chat.ChatName = chatName
+	if err := r.db.Save(&chat).Error; err != nil {
+		return nil, err
+	}
+
+	return &chat, nil
+}
+
 func (r *ChatRepository) Create() (*models.Chat, error) {
 	chat := &models.Chat{}
 	err := r.db.Create(chat).Error
