@@ -139,12 +139,12 @@ func (s *MessageService) CreateMessage(chat, sender uint, content string) (*dto.
 	return &resp, nil
 }
 
-func (s *MessageService) ChangeMessage(messageID, userID uint, сontent string) (*dto.MessageResponse, error) {
+func (s *MessageService) ChangeMessage(messageID, userID uint, content string) (*dto.MessageResponse, error) {
 	if messageID == 0 {
 		return nil, errors.New("invalid message id")
 	}
 
-	if сontent == "" {
+	if content == "" {
 		return nil, errors.New("content cannot be empty")
 	}
 
@@ -157,7 +157,7 @@ func (s *MessageService) ChangeMessage(messageID, userID uint, сontent string) 
 		return nil, errors.New("user cannot edit this message")
 	}
 
-	updatedMsg, err := s.messageRepo.UpdateContent(messageID, сontent)
+	updatedMsg, err := s.messageRepo.UpdateContent(messageID, content)
 	if err != nil {
 		return nil, err
 	}
