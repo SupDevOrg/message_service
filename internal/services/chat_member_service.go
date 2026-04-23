@@ -89,8 +89,11 @@ func (s *ChatMemberService) AddUsersToChat(chatID uint, usersToAdd []uint, chatm
 }
 
 func (s *ChatMemberService) RemoveUserFromChat(chat, removeuser, chatuser uint) error {
-	if removeuser == 0 {
+	if chat == 0 {
 		return errors.New("invalid chat ID")
+	}
+	if removeuser == 0 {
+		return errors.New("invalid user ID")
 	}
 	if chatuser == 0 {
 		return errors.New("invalid user ID")

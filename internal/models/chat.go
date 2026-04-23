@@ -6,7 +6,7 @@ type Chat struct {
 	ID        uint         `gorm:"primaryKey" json:"id"`
 	CreatedAt time.Time    `json:"created_at"`
 	ChatName  string       `json:"chatname"`
-	IsGroup   bool         `grom:"index" json:"isgroupchat"`
+	IsGroup   bool         `gorm:"index" json:"isgroupchat"`
 	Members   []ChatMember `gorm:"foreignKey:ChatID" json:"-"`
 	Messages  []Message    `gorm:"foreignKey:ChatID" json:"-"`
 }

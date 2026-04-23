@@ -12,7 +12,7 @@ definitions:
   dto.ChangeMessageRequest:
     properties:
       content:
-        example: updated text
+        example: новый пипяо
         type: string
     required:
     - content
@@ -30,11 +30,20 @@ definitions:
     type: object
   dto.CreateChatRequest:
     properties:
-      user_id:
-        example: 12
-        type: integer
+      chat_name:
+        type: string
+      type:
+        enum:
+        - private
+        - group
+        type: string
+      users:
+        items:
+          type: integer
+        type: array
     required:
-    - user_id
+    - type
+    - users
     type: object
   dto.CreateChatResponse:
     properties:
@@ -44,19 +53,13 @@ definitions:
         example: true
         type: boolean
     type: object
-  dto.CreateGroupChatRequest:
+  dto.CreateMessageRequest:
     properties:
-      user_id:
-        items:
-          $ref: '#/definitions/dto.UserDTO'
-        type: array
+      content:
+        example: пипяо
+        type: string
     required:
-    - user_id
-    type: object
-  dto.CreateGroupChatResponse:
-    properties:
-      chat_id:
-        $ref: '#/definitions/dto.ChatDTO'
+    - content
     type: object
   dto.ErrorResponse:
     properties:
@@ -112,6 +115,14 @@ definitions:
           $ref: '#/definitions/dto.MessageResponse'
         type: array
     type: object
+  dto.UpdateChatRequest:
+    properties:
+      chat_name:
+        example: hello there
+        type: string
+    required:
+    - chat_name
+    type: object
   dto.UserDTO:
     properties:
       id:
@@ -150,7 +161,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Создаёт приватный чат или возвращает существующий
+      description: Создаёт приватный или групповой чат
       parameters:
       - description: Authenticated user ID
         in: header
@@ -174,7 +185,59 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
-      summary: Create private chat
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Create chat
+      tags:
+      - chats
+  /chats/{chat_id}:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет данные чата
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      - description: Update chat request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.ChatDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Update chat name
       tags:
       - chats
   /chats/{chat_id}/members:
@@ -258,42 +321,50 @@ paths:
       summary: Add users to chat
       tags:
       - chats
-  /chats/group:
-    post:
-      consumes:
-      - application/json
-      description: Создаёт групповой чат и добавляет участников
+  /chats/{chat_id}/members/{user_id}:
+    delete:
+      description: Удаляет пользователя из чата
       parameters:
       - description: Authenticated user ID
         in: header
         name: X-Auth-User-ID
         required: true
         type: string
-      - description: Create group chat request
-        in: body
-        name: request
+      - description: Chat ID
+        in: path
+        name: chat_id
         required: true
-        schema:
-          $ref: '#/definitions/dto.CreateGroupChatRequest'
+        type: integer
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.CreateGroupChatResponse'
+        "204":
+          description: No Content
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
-      summary: Create group chat
+      summary: Remove user from chat
       tags:
       - chats
-  /messages/{chat_id}:
+  /chats/{chat_id}/messages:
     get:
       description: Возвращает сообщения чата с пагинацией
       parameters:
@@ -330,8 +401,133 @@ paths:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Get messages by chat
       tags:
-      - messages
+      - chats
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новое сообщение в чате
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      - description: Create message request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Create message
+      tags:
+      - chats
   /messages/{message_id}:
+    delete:
+      description: Удаляет сообщение
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Delete message
+      tags:
+      - messages
+    get:
+      description: Возвращает одно сообщение по ID
+      parameters:
+      - description: Authenticated user ID
+        in: header
+        name: X-Auth-User-ID
+        required: true
+        type: string
+      - description: Message ID
+        in: path
+        name: message_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get message
+      tags:
+      - messages
     put:
       consumes:
       - application/json
