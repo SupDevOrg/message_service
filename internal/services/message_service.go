@@ -164,39 +164,60 @@ func (s *MessageService) ChangeMessage(messageID, userID uint, сontent string) 
 	return &resp, nil
 }
 
-/*
-	func (s *MessageService) GetMessage(messageID, requestUserID uint) (*models.Message, error) {
-		isMember, err := s.chatMemberRepo.IsUserInChat(message.ChatID, requestUserID)
-		if err != nil {
-			return nil, err
-		}
-		if !isMember {
-			return nil, errors.New("user is not a member of this chat")
-		}
-
-		if messageID == 0 {
-			return nil, errors.New("invalid message ID")
-		}
-
-		message, err := s.messageRepo.GetByID(messageID)
-		if err != nil {
-			return nil, err
-		}
-
-		return message, nil
+func (s *MessageService) GetMessage(messageID, userID uint) (*dto.MessageResponse, error) {
+	if messageID == 0 {
+		return nil, errors.New("invalid message ID")
 	}
-*/
+	if userID == 0 {
+		return nil, errors.New("invalid user ID")
+	}
+
+	message, err := s.messageRepo.GetByID(messageID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("message not found")
+		}
+		return nil, err
+	}
+
+	isMember, err := s.chatMemberRepo.IsUserInChat(message.ChatID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, errors.New("user is not a member of this chat")
+	}
+
+	resp := mapMessageToDTO(*message)
+	return &resp, nil
+}
+
 func (s *MessageService) DeleteMessage(msg, user uint) error {
 	if msg == 0 {
 		return errors.New("invalid message ID")
 	}
+	if user == 0 {
+		return errors.New("invalid user ID")
+	}
 
-	_, err := s.messageRepo.GetByID(msg)
+	message, err := s.messageRepo.GetByID(msg)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("message not found")
 		}
 		return err
+	}
+
+	isMember, err := s.chatMemberRepo.IsUserInChat(message.ChatID, user)
+	if err != nil {
+		return err
+	}
+	if !isMember {
+		return errors.New("user is not a member of this chat")
+	}
+
+	if message.SenderID != user {
+		return errors.New("user cannot delete this message")
 	}
 
 	return s.messageRepo.Delete(msg)

@@ -100,15 +100,19 @@ func main() {
 	api := router.Group("/api/v1/message")
 	{
 		// messages
-		api.GET("/messages/:chat_id", messageHandler.GetMessages)
 		api.PUT("/messages/:message_id", messageHandler.ChangeMessage)
-		// api.DELETE("/messages/:message_id", messageHandler.DeleteMessage)
+		api.GET("/messages/:message_id", messageHandler.GetMessage)
+		api.DELETE("/messages/:message_id", messageHandler.DeleteMessage)
 		// chat
 		api.GET("/chats", chatHandler.GetUserChats)
 		api.POST("/chats", chatHandler.CreateChat)
 		api.POST("/chats/group", chatHandler.CreateGroupChat)
+		api.GET("/chats/:chat_id", chatHandler.GetUserChats)
 		api.GET("/chats/:chat_id/members", chatHandler.GetChatMembers)
 		api.POST("/chats/:chat_id/members", chatHandler.AddUsersToChat)
+		//DELETE /chats/:chat_id/members/:user_id
+		//api.GET("/chats/:chat_id/messages", messageHandler.GetMessages)
+		//api.POST("/chats/:chat_id/messages", messageHandler.CreateMessages)
 		// websocket
 		api.GET("/ws", wsHandler.HandleWebSocket)
 	}
