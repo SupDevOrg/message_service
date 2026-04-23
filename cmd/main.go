@@ -108,11 +108,11 @@ func main() {
 		api.POST("/chats", chatHandler.CreateChat)
 		api.POST("/chats/group", chatHandler.CreateGroupChat)
 		api.GET("/chats/:chat_id", chatHandler.GetUserChats)
+		api.GET("/chats/:chat_id/messages", messageHandler.GetMessages) //Front issue
 		api.GET("/chats/:chat_id/members", chatHandler.GetChatMembers)
 		api.POST("/chats/:chat_id/members", chatHandler.AddUsersToChat)
-		//DELETE /chats/:chat_id/members/:user_id
-		//api.GET("/chats/:chat_id/messages", messageHandler.GetMessages)
-		//api.POST("/chats/:chat_id/messages", messageHandler.CreateMessages)
+		api.DELETE("/chats/:chat_id/members/:user_id", chatHandler.RemoveUserFromChat)
+		api.POST("/chats/:chat_id/messages", messageHandler.CreateMessage)
 		// websocket
 		api.GET("/ws", wsHandler.HandleWebSocket)
 	}

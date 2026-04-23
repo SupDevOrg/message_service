@@ -21,6 +21,60 @@ func NewMessageHandler(messageService *services.MessageService) *MessageHandler 
 	}
 }
 
+// CreateMessage godoc
+// @Summary Create message
+// @Description Создаёт новое сообщение в чате
+// @Tags messages
+// @Accept json
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param chat_id path int true "Chat ID"
+// @Param request body dto.CreateMessageRequest true "Create message request"
+// @Success 201 {object} dto.MessageResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /chats/{chat_id}/messages [post]
+func (h *MessageHandler) CreateMessage(c *gin.Context) {
+	chatIDStr := c.Param("chat_id")
+	chatID, err := strconv.ParseUint(chatIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat_id"})
+		return
+	}
+
+	userIDStr := c.GetHeader("X-Auth-User-ID")
+	userID, err := strconv.ParseUint(userIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	var req dto.CreateMessageRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	message, err := h.messageService.CreateMessage(uint(chatID), uint(userID), req.Content)
+	if err != nil {
+		switch err.Error() {
+		case "chat not found":
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case "sender is not a member of this chat":
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		case "invalid chat ID", "invalid sender ID", "message cannot be empty":
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(http.StatusCreated, message)
+}
+
 // GetMessage godoc
 // @Summary Get message
 // @Description Возвращает одно сообщение по ID

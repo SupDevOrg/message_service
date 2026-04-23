@@ -313,3 +313,60 @@ func (h *ChatHandler) CreateGroupChat(c *gin.Context) {
 			IsGroup:   chat.IsGroup},
 	})
 }
+
+// RemoveUserFromChat godoc
+// @Summary Remove user from chat
+// @Description Удаляет пользователя из чата
+// @Tags chats
+// @Produce json
+// @Param X-Auth-User-ID header string true "Authenticated user ID"
+// @Param chat_id path int true "Chat ID"
+// @Param user_id path int true "User ID"
+// @Success 204
+// @Failure 400 {object} dto.ErrorResponse
+// @Failure 403 {object} dto.ErrorResponse
+// @Failure 404 {object} dto.ErrorResponse
+// @Failure 500 {object} dto.ErrorResponse
+// @Router /chats/{chat_id}/members/{user_id} [delete]
+func (h *ChatHandler) RemoveUserFromChat(c *gin.Context) {
+	actorIDStr := c.GetHeader("X-Auth-User-ID")
+	actorID64, err := strconv.ParseUint(actorIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+	actorID := uint(actorID64)
+
+	chatIDStr := c.Param("chat_id")
+	chatID64, err := strconv.ParseUint(chatIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid chat id"})
+		return
+	}
+	chatID := uint(chatID64)
+
+	removeUserIDStr := c.Param("user_id")
+	removeUserID64, err := strconv.ParseUint(removeUserIDStr, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+	removeUserID := uint(removeUserID64)
+
+	err = h.chatMemberService.RemoveUserFromChat(chatID, removeUserID, actorID)
+	if err != nil {
+		switch err.Error() {
+		case "chat not found":
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		case "user is not a member of this chat", "only chat members can remove users":
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		case "invalid chat ID", "invalid user ID":
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}

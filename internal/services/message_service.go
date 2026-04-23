@@ -117,7 +117,9 @@ func (s *MessageService) CreateMessage(chat, sender uint, content string) (*dto.
 
 	_, err := s.chatRepo.FindByID(chat)
 	if err != nil {
-
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("chat not found")
+		}
 		return nil, err
 	}
 
